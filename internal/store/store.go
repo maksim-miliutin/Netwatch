@@ -48,7 +48,9 @@ func (s *Store) Add(one play.Play) error {
 
 	if len(already) > 0 {
 		last := already[len(already)-1]
-		if last.Service == one.Service && last.ID == one.ID {
+		// Still running counts as the same watch. One already closed does not:
+		// coming back to a ten minute video an hour later is a second watch.
+		if last.Service == one.Service && last.ID == one.ID && last.Seconds == 0 {
 			return nil
 		}
 
@@ -129,6 +131,20 @@ func (s *Store) All() ([]play.Play, error) {
 	})
 
 	return plays, nil
+}
+
+// Stop closes what is open because something said it ended rather than because
+// the next play arrived. A page that is left knows the moment it was left.
+func (s *Store) Stop(at time.Time) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	plays, err := s.read()
+	if err != nil || len(plays) == 0 {
+		return err
+	}
+
+	return s.close(plays[len(plays)-1], at)
 }
 
 // Ends is how long a play may be counted for. A tab left open overnight was

@@ -72,12 +72,17 @@ it anything.
 
 ## How long
 
-A play is closed by the next one — the only end most of them get. A tab knows
-when it opened and almost never when it was abandoned.
+A play is closed when the page says it ended: the tab was closed, or somebody
+left it. That is the only honest end — everything else is a guess made after
+the fact.
 
-Two consequences, both visible on the page. The last play is always running and
-uncounted. And a tab left overnight is not counted at all: nobody watched nine
-hours of YouTube, and a list that says so is worse than one that says nothing.
+When there was nobody left to say it — the browser was killed, the machine went
+to sleep — the next play closes the one before it. And if more than three hours
+passed between them, nothing is counted at all: a tab left open overnight was
+not nine hours of YouTube, and a list that says so is worse than one that says
+nothing.
+
+So whatever is playing right now is always uncounted. It is still playing.
 
 ## History from before
 
@@ -99,7 +104,6 @@ at. So are searches: a page of the service, not a watch.
 
 ## Next
 
-- How long for real: the page already says when it was left
 - Days as well as weeks
 - Yandex Music hands over a history through a key of its own
 - What plays, on a Discord card

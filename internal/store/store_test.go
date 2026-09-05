@@ -234,3 +234,41 @@ func TestMergeSitsAlongsideWhatWasWatchedLive(t *testing.T) {
 		t.Errorf("got %+v", got)
 	}
 }
+
+// Waiting for the next video to close this one leaves the last watch of every
+// day uncounted.
+func TestClosesWhatIsOpenWhenToldItEnded(t *testing.T) {
+	store := fresh(t)
+	now := time.Now().UTC()
+
+	_ = store.Add(one("a", now))
+
+	if err := store.Stop(now.Add(3 * time.Minute)); err != nil {
+		t.Fatal(err)
+	}
+
+	got, _ := store.All()
+	if got[0].Seconds != 180 {
+		t.Errorf("counted %d seconds, wanted 180", got[0].Seconds)
+	}
+}
+
+func TestClosingNothingIsNotAnError(t *testing.T) {
+	if err := fresh(t).Stop(time.Now()); err != nil {
+		t.Errorf("got %v on an empty list", err)
+	}
+}
+
+func TestWritesSomethingAgainOnceItWasClosed(t *testing.T) {
+	store := fresh(t)
+	now := time.Now().UTC()
+
+	_ = store.Add(one("a", now))
+	_ = store.Stop(now.Add(time.Minute))
+	_ = store.Add(one("a", now.Add(time.Hour)))
+
+	got, _ := store.All()
+	if len(got) != 2 {
+		t.Errorf("wrote %d, wanted two", len(got))
+	}
+}

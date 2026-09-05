@@ -171,6 +171,13 @@ func (s *Server) playing(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) gone(w http.ResponseWriter, r *http.Request) {
 	s.Watching.Nothing()
+
+	if err := s.Store.Stop(time.Now()); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+
+		return
+	}
+
 	answer(w, map[string]bool{"stopped": true})
 }
 

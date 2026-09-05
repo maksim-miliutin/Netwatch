@@ -7,13 +7,16 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 
+	"netwatch/internal/discord"
 	"netwatch/internal/now"
 	"netwatch/internal/store"
 	"netwatch/internal/takeout"
@@ -24,6 +27,8 @@ func main() {
 	port := flag.Int("port", 7373, "where to listen, on this machine only")
 	file := flag.String("file", "", "where to keep the list")
 	from := flag.String("import", "", "a watch-history.json out of a Takeout archive")
+	card := flag.String("discord", "",
+		"an application id, to put what plays on a Discord card. off forgets it")
 	flag.Parse()
 
 	where, err := chosen(*file)
@@ -44,11 +49,25 @@ func main() {
 		return
 	}
 
-	server := &web.Server{Store: kept, Watching: now.New()}
+	id, err := remembered(*card, filepath.Dir(where))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	watching := now.New()
+	server := &web.Server{Store: kept, Watching: watching}
 	address := fmt.Sprintf("127.0.0.1:%d", *port)
 
 	fmt.Printf("netwatch is running. Open http://%s in a browser.\n", address)
 	fmt.Printf("The list is kept in %s and goes nowhere else.\n", where)
+
+	// The card is the one thing here that leaves the machine, so it runs only
+	// for somebody who went and got an application id for it.
+	if id != "" {
+		go discord.Follow(context.Background(), id, watching, func(text string) {
+			fmt.Println(text)
+		})
+	}
 
 	log.Fatal(http.ListenAndServe(address, web.Near(server.Routes())))
 }
@@ -85,6 +104,32 @@ func bring(kept *store.Store, from string) error {
 	}
 
 	return nil
+}
+
+// A flag is no use to somebody who starts this by double clicking it, and an
+// application id is not a secret: everybody who reads the card can read it.
+func remembered(asked, dir string) (string, error) {
+	file := filepath.Join(dir, "discord")
+
+	// An id is a number, so the word cannot be one.
+	if asked == "off" {
+		if err := os.Remove(file); err != nil && !os.IsNotExist(err) {
+			return "", err
+		}
+
+		return "", nil
+	}
+
+	if asked != "" {
+		return asked, os.WriteFile(file, []byte(asked+"\n"), 0o600)
+	}
+
+	kept, err := os.ReadFile(file)
+	if os.IsNotExist(err) {
+		return "", nil
+	}
+
+	return strings.TrimSpace(string(kept)), err
 }
 
 // Beside the program when that can be written to, and in the home folder when
