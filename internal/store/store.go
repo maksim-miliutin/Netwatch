@@ -1,10 +1,8 @@
 // Package store keeps the plays in a file, one to a line.
 //
-// A line at a time rather than a database: what is written is only ever added
-// to, the whole of it fits in memory, and anybody who wants to read it can do
-// so with any tool that reads text. A database would buy nothing here and
-// would cost a dependency on the day this has to build on a machine that has
-// none.
+// A line at a time rather than a database: what is written is only added to,
+// and all of it fits in memory. A database would cost a dependency and buy
+// nothing.
 package store
 
 import (
@@ -20,9 +18,8 @@ import (
 )
 
 type Store struct {
-	// The file is opened for every write rather than held open: this program
-	// spends its life idle, and a handle held for hours is a handle that
-	// outlives the disk it points at.
+	// Opened for every write rather than held: this program spends its life
+	// idle, and a handle held for hours outlives the disk it points at.
 	file string
 
 	mu sync.Mutex
@@ -36,14 +33,10 @@ func Open(file string) (*Store, error) {
 	return &Store{file: file}, nil
 }
 
-// Add writes one play down, unless the same one is already the last thing
-// written. A tab left open reports itself again on every check, and the same
-// video twice in a row is one watch rather than two.
-//
-// It also closes the one before it: a play ends when the next one starts, and
-// that is the only end most of them get. A tab closed without another opening
-// stays open in the list until something else is watched, which is the honest
-// answer rather than a guess.
+// Add writes one play down, unless the same one is already last: a tab left
+// open reports itself again on every check. It also closes the one before
+// it, because a play ends when the next one starts and that is the only end
+// most of them get.
 func (s *Store) Add(one play.Play) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -80,9 +73,8 @@ func (s *Store) Add(one play.Play) error {
 	return err
 }
 
-// Merge writes down plays that came from somewhere other than a browser tab,
-// leaving out the ones already here. An import run twice should cost nothing:
-// somebody who is not sure whether it worked will run it again.
+// Merge writes down plays from somewhere other than a browser tab, leaving
+// out the ones already here: an import run twice should cost nothing.
 func (s *Store) Merge(incoming []play.Play) (added int, err error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -118,14 +110,11 @@ func (s *Store) Merge(incoming []play.Play) (added int, err error) {
 	return added, s.rewrite(already)
 }
 
-// What makes two plays the same one: the thing watched and the moment. The
-// same video watched twice is two plays, and the same row imported twice is
-// one.
+// What makes two plays the same one: the thing watched and the moment.
 func key(one play.Play) string {
 	return one.Service + "\x00" + one.ID + "\x00" + one.At.UTC().Format(time.RFC3339)
 }
 
-// All hands back everything written, newest first.
 func (s *Store) All() ([]play.Play, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -142,14 +131,12 @@ func (s *Store) All() ([]play.Play, error) {
 	return plays, nil
 }
 
-// Ends is how long a play may be counted for. Somebody who leaves a tab open
-// overnight did not watch for nine hours, and a list that says they did is
-// worse than one that says nothing.
+// Ends is how long a play may be counted for. A tab left open overnight was
+// not nine hours of watching, and a list that says so is worse than silence.
 const Ends = 3 * time.Hour
 
-// close writes down how long the play before this one lasted. The whole file
-// is rewritten: it is a few thousand lines at most, and rewriting it whole is
-// simpler than seeking into a line and hoping the new one is the same length.
+// close writes down how long the play before this one lasted. The file is
+// rewritten whole: a few thousand lines, and seeking into one is not simpler.
 func (s *Store) close(last play.Play, at time.Time) error {
 	if last.Seconds != 0 {
 		return nil
@@ -175,8 +162,7 @@ func (s *Store) close(last play.Play, at time.Time) error {
 }
 
 func (s *Store) rewrite(plays []play.Play) error {
-	// Written beside and moved into place: a program stopped halfway through
-	// this should cost nothing, and half a file costs everything.
+	// Written beside and moved into place: half a file costs everything.
 	temporary := s.file + ".new"
 
 	file, err := os.OpenFile(temporary, os.O_TRUNC|os.O_CREATE|os.O_WRONLY, 0o600)
@@ -231,8 +217,7 @@ func (s *Store) read() ([]play.Play, error) {
 	for lines.Scan() {
 		var one play.Play
 
-		// A line that will not read is skipped rather than fatal: one bad
-		// line should not cost somebody the rest of their history.
+		// One bad line should not cost somebody the rest of their history.
 		if err := json.Unmarshal(lines.Bytes(), &one); err != nil {
 			continue
 		}
