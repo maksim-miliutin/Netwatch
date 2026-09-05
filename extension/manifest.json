@@ -1,9 +1,64 @@
 {
     "manifest_version": 3,
     "name": "netwatch",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "description": "Рассказывает netwatch на этой машине, что открыто. Больше никуда.",
-    "permissions": ["tabs"],
-    "host_permissions": ["http://127.0.0.1:7373/*"],
-    "background": { "service_worker": "worker.js" }
+    "permissions": [
+        "tabs"
+    ],
+    "host_permissions": [
+        "http://127.0.0.1:7373/*"
+    ],
+    "background": {
+        "service_worker": "worker.js"
+    },
+    "content_scripts": [
+        {
+            "matches": [
+                "https://youtube.com/*",
+                "https://*.youtube.com/*",
+                "https://youtu.be/*",
+                "https://rutube.ru/*",
+                "https://*.rutube.ru/*",
+                "https://music.yandex.ru/*",
+                "https://music.yandex.com/*",
+                "https://vk.com/*",
+                "https://*.vk.com/*",
+                "https://vkvideo.ru/*",
+                "https://*.vkvideo.ru/*",
+                "https://twitch.tv/*",
+                "https://*.twitch.tv/*",
+                "https://dzen.ru/*",
+                "https://*.dzen.ru/*",
+                "https://ok.ru/*",
+                "https://*.ok.ru/*",
+                "https://vimeo.com/*",
+                "https://*.vimeo.com/*",
+                "https://dailymotion.com/*",
+                "https://*.dailymotion.com/*",
+                "https://coub.com/*",
+                "https://*.coub.com/*",
+                "https://netflix.com/*",
+                "https://*.netflix.com/*",
+                "https://kinopoisk.ru/*",
+                "https://*.kinopoisk.ru/*",
+                "https://okko.tv/*",
+                "https://*.okko.tv/*",
+                "https://ivi.ru/*",
+                "https://*.ivi.ru/*",
+                "https://wink.ru/*",
+                "https://*.wink.ru/*",
+                "https://premier.one/*",
+                "https://*.premier.one/*",
+                "https://kick.com/*",
+                "https://*.kick.com/*",
+                "https://live.vkplay.ru/*",
+                "https://vkplay.live/*"
+            ],
+            "js": [
+                "page.js"
+            ],
+            "run_at": "document_idle"
+        }
+    ]
 }
