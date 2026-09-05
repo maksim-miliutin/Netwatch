@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>netwatch</title>
+</head>
+<body>
+    <h1>netwatch</h1>
+    <p>Что смотрелось и слушалось. Только на этой машине.</p>
+
+    {{with .Week}}
+    <h2>За неделю</h2>
+    <p>{{.Plays}} раз{{if .Seconds}}, {{hours .Seconds}}{{end}}</p>
+
+    <ul>
+        {{range .Services}}
+        <li>{{.Name}} — {{if .Seconds}}{{hours .Seconds}}{{else}}{{.Plays}} раз{{end}}</li>
+        {{end}}
+    </ul>
+
+    {{if .Open}}<p>Ещё {{.Open}} не досчитано: просмотр закрывается следующим.</p>{{end}}
+    {{end}}
+
+    <h2>Список</h2>
+
+    <table>
+        {{range .Plays}}
+        <tr>
+            <td>{{.Service}}</td>
+            <td><a href="{{.URL}}">{{if .Title}}{{.Title}}{{else}}{{.ID}}{{end}}</a></td>
+            <td>{{if .Seconds}}{{hours .Seconds}}{{end}}</td>
+            <td>{{.At.Format "02.01 15:04"}}</td>
+        </tr>
+        {{else}}
+        <tr><td>Пока пусто. Поставь расширение и открой ролик.</td></tr>
+        {{end}}
+    </table>
+</body>
+</html>
