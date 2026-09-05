@@ -113,3 +113,18 @@ func TestIgnoresTheirCatalogues(t *testing.T) {
 		}
 	}
 }
+
+func TestNamesServicesTheWayPeopleReadThem(t *testing.T) {
+	if got := Shown("yandex-music"); got != "Яндекс.Музыка" {
+		t.Errorf("got %q", got)
+	}
+
+	// A play imported before the list changed still has to be drawn.
+	if got := Shown("myvi"); got != "myvi" {
+		t.Errorf("got %q", got)
+	}
+
+	if !Heard("yandex-music") || Heard("youtube") {
+		t.Error("music is watched or video is listened to")
+	}
+}

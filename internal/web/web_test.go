@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"netwatch/internal/now"
 	"netwatch/internal/store"
 )
 
@@ -18,13 +19,17 @@ func serving(t *testing.T) http.Handler {
 		t.Fatal(err)
 	}
 
-	return (&Server{Store: kept}).Routes()
+	return (&Server{Store: kept, Watching: now.New()}).Routes()
 }
 
 func post(t *testing.T, handler http.Handler, body string) *httptest.ResponseRecorder {
+	return sent(t, handler, "/api/seen", body)
+}
+
+func sent(t *testing.T, handler http.Handler, where, body string) *httptest.ResponseRecorder {
 	t.Helper()
 
-	request := httptest.NewRequest("POST", "/api/seen", strings.NewReader(body))
+	request := httptest.NewRequest("POST", where, strings.NewReader(body))
 	answer := httptest.NewRecorder()
 
 	handler.ServeHTTP(answer, request)
@@ -131,5 +136,59 @@ func TestSaysHowLongInWordsPeopleUse(t *testing.T) {
 		if got := hours(seconds); got != wanted {
 			t.Errorf("%d: got %q, wanted %q", seconds, got, wanted)
 		}
+	}
+}
+
+func shown(t *testing.T, handler http.Handler) string {
+	t.Helper()
+
+	answer := httptest.NewRecorder()
+	handler.ServeHTTP(answer, httptest.NewRequest("GET", "/", nil))
+
+	return answer.Body.String()
+}
+
+// A page knows the name of what it plays; a tab knows the name of the tab.
+func TestKeepsWhatAPlayingPageSaysAboutItself(t *testing.T) {
+	handler := serving(t)
+
+	answer := sent(t, handler, "/api/now",
+		`{"url":"https://youtu.be/abc","title":"Нечто","position":12.5,"length":600}`)
+
+	if answer.Code != http.StatusOK {
+		t.Fatalf("got %d %s", answer.Code, answer.Body)
+	}
+
+	if page := shown(t, handler); !strings.Contains(page, "Сейчас: <b>Нечто</b>") {
+		t.Errorf("the page says nothing about it: %s", page)
+	}
+}
+
+func TestSaysNothingIsOnUntilSomethingIs(t *testing.T) {
+	if page := shown(t, serving(t)); strings.Contains(page, "Сейчас:") {
+		t.Errorf("something plays on a machine nobody touched: %s", page)
+	}
+}
+
+func TestStopsWhenTheTabIsGone(t *testing.T) {
+	handler := serving(t)
+
+	sent(t, handler, "/api/now", `{"url":"https://youtu.be/abc","title":"Нечто"}`)
+	sent(t, handler, "/api/gone", `{}`)
+
+	if page := shown(t, handler); strings.Contains(page, "Сейчас:") {
+		t.Error("still playing after the tab went")
+	}
+}
+
+// Somebody who went from a video to a search is watching nothing.
+func TestAPageThatIsNotAPlayEndsWhatWasPlaying(t *testing.T) {
+	handler := serving(t)
+
+	sent(t, handler, "/api/now", `{"url":"https://youtu.be/abc","title":"Нечто"}`)
+	sent(t, handler, "/api/now", `{"url":"https://www.youtube.com/results?q=нечто","title":"Поиск"}`)
+
+	if page := shown(t, handler); strings.Contains(page, "Сейчас:") {
+		t.Error("still playing after the tab went to a search")
 	}
 }

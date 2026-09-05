@@ -14,6 +14,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"netwatch/internal/now"
 	"netwatch/internal/store"
 	"netwatch/internal/takeout"
 	"netwatch/internal/web"
@@ -43,7 +44,7 @@ func main() {
 		return
 	}
 
-	server := &web.Server{Store: kept}
+	server := &web.Server{Store: kept, Watching: now.New()}
 	address := fmt.Sprintf("127.0.0.1:%d", *port)
 
 	fmt.Printf("netwatch is running. Open http://%s in a browser.\n", address)

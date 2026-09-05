@@ -9,8 +9,10 @@ import (
 	"html/template"
 	"net"
 	"net/http"
+	"strings"
 	"time"
 
+	"netwatch/internal/now"
 	"netwatch/internal/play"
 	"netwatch/internal/store"
 	"netwatch/internal/sum"
@@ -37,7 +39,8 @@ func hours(seconds int) string {
 }
 
 type Server struct {
-	Store *store.Store
+	Store    *store.Store
+	Watching *now.Watch
 }
 
 func (s *Server) Routes() *http.ServeMux {
@@ -45,6 +48,8 @@ func (s *Server) Routes() *http.ServeMux {
 
 	mux.HandleFunc("GET /", s.show)
 	mux.HandleFunc("POST /api/seen", s.seen)
+	mux.HandleFunc("POST /api/now", s.playing)
+	mux.HandleFunc("POST /api/gone", s.gone)
 	mux.HandleFunc("GET /api/plays", s.plays)
 	mux.HandleFunc("GET /api/services", s.services)
 	mux.HandleFunc("GET /api/week", s.week)
@@ -105,6 +110,93 @@ func (s *Server) seen(w http.ResponseWriter, r *http.Request) {
 	answer(w, map[string]any{"kept": true, "service": one.Service})
 }
 
+// What a page says about itself while it runs. Seconds with a fraction
+// because that is what a media element counts in.
+type living struct {
+	URL      string  `json:"url"`
+	Title    string  `json:"title"`
+	By       string  `json:"by"`
+	Paused   bool    `json:"paused"`
+	Position float64 `json:"position"`
+	Length   float64 `json:"length"`
+}
+
+// A page knows the name of what it plays; a tab knows the name of the tab.
+// "Нечто — YouTube" is a worse line in a list than "Нечто", so this writes the
+// play down as well.
+func (s *Server) playing(w http.ResponseWriter, r *http.Request) {
+	var said living
+
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 8<<10)).Decode(&said); err != nil {
+		http.Error(w, "unreadable", http.StatusBadRequest)
+
+		return
+	}
+
+	at := time.Now()
+
+	one, ok := play.Recognise(said.URL, said.Title, at)
+	if !ok {
+		s.Watching.Nothing()
+		answer(w, map[string]bool{"kept": false})
+
+		return
+	}
+
+	s.Watching.Says(now.Said{
+		Play:     one,
+		By:       strings.TrimSpace(said.By),
+		Paused:   said.Paused,
+		Position: seconds(said.Position),
+		Length:   seconds(said.Length),
+	}, at)
+
+	if err := s.Store.Add(one); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+
+		return
+	}
+
+	answer(w, map[string]any{"kept": true, "service": one.Service})
+}
+
+func (s *Server) gone(w http.ResponseWriter, r *http.Request) {
+	s.Watching.Nothing()
+	answer(w, map[string]bool{"stopped": true})
+}
+
+// A negative position is a page still loading, and a length of a year is a
+// stream pretending to have an end.
+func seconds(said float64) time.Duration {
+	if said <= 0 || said > (30*24*time.Hour).Seconds() {
+		return 0
+	}
+
+	return time.Duration(said * float64(time.Second))
+}
+
+// A Now is the line at the top: what is playing this second, if anything.
+type Now struct {
+	Playing bool
+	Service string
+	Title   string
+	Paused  bool
+}
+
+func (s *Server) onNow() Now {
+	live, ok := s.Watching.Playing(time.Now())
+	if !ok {
+		return Now{}
+	}
+
+	title := live.Play.Title
+	if title == "" {
+		title = live.Play.ID
+	}
+
+	return Now{Playing: true, Service: live.Play.Service, Title: title, Paused: live.Paused}
+}
+
 func (s *Server) plays(w http.ResponseWriter, r *http.Request) {
 	plays, err := s.Store.All()
 	if err != nil {
@@ -148,9 +240,10 @@ func (s *Server) show(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("content-type", "text/html; charset=utf-8")
 
 	_ = page.Execute(w, struct {
+		Now   Now
 		Plays []play.Play
 		Week  sum.Total
-	}{plays, sum.Week(plays, time.Now())})
+	}{s.onNow(), plays, sum.Week(plays, time.Now())})
 }
 
 func answer(w http.ResponseWriter, body any) {

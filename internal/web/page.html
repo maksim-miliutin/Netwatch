@@ -8,6 +8,10 @@
     <h1>netwatch</h1>
     <p>Что смотрелось и слушалось. Только на этой машине.</p>
 
+    {{if .Now.Playing}}
+    <p>Сейчас: <b>{{.Now.Title}}</b> — {{.Now.Service}}{{if .Now.Paused}}, на паузе{{end}}</p>
+    {{end}}
+
     {{with .Week}}
     <h2>За неделю</h2>
     <p>{{.Plays}} раз{{if .Seconds}}, {{hours .Seconds}}{{end}}</p>

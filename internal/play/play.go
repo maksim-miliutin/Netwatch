@@ -25,6 +25,14 @@ type Service struct {
 	Name  string
 	Hosts []string
 
+	// Shown is the name people read. Name stays lowercase and plain: it is a
+	// key in a file and the name of a picture Discord looks up by it.
+	Shown string
+
+	// Heard is what somebody listens to rather than watches, which Discord
+	// says out loud above the card.
+	Heard bool
+
 	// Watching answers what is being watched here, and nothing when the page
 	// is not a watch at all: a search on YouTube is still YouTube.
 	Watching func(*url.URL) string
@@ -33,6 +41,7 @@ type Service struct {
 var services = []Service{
 	{
 		Name:  "youtube",
+		Shown: "YouTube",
 		Hosts: []string{"youtube.com", "www.youtube.com", "m.youtube.com", "youtu.be"},
 		Watching: func(u *url.URL) string {
 			if u.Host == "youtu.be" {
@@ -44,6 +53,7 @@ var services = []Service{
 	},
 	{
 		Name:  "rutube",
+		Shown: "RuTube",
 		Hosts: []string{"rutube.ru", "www.rutube.ru"},
 		Watching: func(u *url.URL) string {
 			return after(u.Path, "/video/")
@@ -51,6 +61,8 @@ var services = []Service{
 	},
 	{
 		Name:  "yandex-music",
+		Shown: "Яндекс.Музыка",
+		Heard: true,
 		Hosts: []string{"music.yandex.ru", "music.yandex.com"},
 		Watching: func(u *url.URL) string {
 			// The album on its own is a page somebody browsed rather than heard.
@@ -59,6 +71,7 @@ var services = []Service{
 	},
 	{
 		Name:  "vk-video",
+		Shown: "VK Видео",
 		Hosts: []string{"vk.com", "vkvideo.ru", "m.vk.com"},
 		Watching: func(u *url.URL) string {
 			return after(u.Path, "/video")
@@ -66,6 +79,7 @@ var services = []Service{
 	},
 	{
 		Name:  "twitch",
+		Shown: "Twitch",
 		Hosts: []string{"twitch.tv", "www.twitch.tv"},
 		Watching: func(u *url.URL) string {
 			if id := after(u.Path, "/videos/"); id != "" {
@@ -78,6 +92,7 @@ var services = []Service{
 	},
 	{
 		Name:  "dzen",
+		Shown: "Дзен",
 		Hosts: []string{"dzen.ru", "www.dzen.ru"},
 		Watching: func(u *url.URL) string {
 			return after(u.Path, "/video/watch/")
@@ -85,6 +100,7 @@ var services = []Service{
 	},
 	{
 		Name:  "ok-video",
+		Shown: "ОК Видео",
 		Hosts: []string{"ok.ru", "www.ok.ru", "m.ok.ru"},
 		Watching: func(u *url.URL) string {
 			return after(u.Path, "/video/")
@@ -92,6 +108,7 @@ var services = []Service{
 	},
 	{
 		Name:  "vimeo",
+		Shown: "Vimeo",
 		Hosts: []string{"vimeo.com", "www.vimeo.com", "player.vimeo.com"},
 		Watching: func(u *url.URL) string {
 			return numbered(u.Path)
@@ -99,6 +116,7 @@ var services = []Service{
 	},
 	{
 		Name:  "dailymotion",
+		Shown: "Dailymotion",
 		Hosts: []string{"dailymotion.com", "www.dailymotion.com"},
 		Watching: func(u *url.URL) string {
 			return after(u.Path, "/video/")
@@ -106,6 +124,7 @@ var services = []Service{
 	},
 	{
 		Name:  "coub",
+		Shown: "Coub",
 		Hosts: []string{"coub.com", "www.coub.com"},
 		Watching: func(u *url.URL) string {
 			return after(u.Path, "/view/")
@@ -113,6 +132,7 @@ var services = []Service{
 	},
 	{
 		Name:  "netflix",
+		Shown: "Netflix",
 		Hosts: []string{"netflix.com", "www.netflix.com"},
 		Watching: func(u *url.URL) string {
 			return after(u.Path, "/watch/")
@@ -120,6 +140,7 @@ var services = []Service{
 	},
 	{
 		Name:  "kinopoisk",
+		Shown: "Кинопоиск",
 		Hosts: []string{"hd.kinopoisk.ru", "kinopoisk.ru", "www.kinopoisk.ru"},
 		Watching: func(u *url.URL) string {
 			return under(u.Path, "/watch/", "/film/", "/series/")
@@ -127,6 +148,7 @@ var services = []Service{
 	},
 	{
 		Name:  "okko",
+		Shown: "Okko",
 		Hosts: []string{"okko.tv", "www.okko.tv"},
 		Watching: func(u *url.URL) string {
 			return under(u.Path, "/movie/", "/serial/", "/video/")
@@ -134,6 +156,7 @@ var services = []Service{
 	},
 	{
 		Name:  "ivi",
+		Shown: "ivi",
 		Hosts: []string{"ivi.ru", "www.ivi.ru"},
 		Watching: func(u *url.URL) string {
 			return under(u.Path, "/watch/")
@@ -141,6 +164,7 @@ var services = []Service{
 	},
 	{
 		Name:  "wink",
+		Shown: "Wink",
 		Hosts: []string{"wink.ru", "www.wink.ru"},
 		Watching: func(u *url.URL) string {
 			return under(u.Path, "/movies/", "/series/", "/channels/")
@@ -148,6 +172,7 @@ var services = []Service{
 	},
 	{
 		Name:  "premier",
+		Shown: "Premier",
 		Hosts: []string{"premier.one", "www.premier.one"},
 		Watching: func(u *url.URL) string {
 			return under(u.Path, "/show/", "/movie/")
@@ -155,6 +180,7 @@ var services = []Service{
 	},
 	{
 		Name:  "kick",
+		Shown: "Kick",
 		Hosts: []string{"kick.com", "www.kick.com"},
 		Watching: func(u *url.URL) string {
 			if id := after(u.Path, "/video/"); id != "" {
@@ -166,11 +192,38 @@ var services = []Service{
 	},
 	{
 		Name:  "vkplay",
+		Shown: "VK Play",
 		Hosts: []string{"live.vkplay.ru", "vkplay.live"},
 		Watching: func(u *url.URL) string {
 			return strings.Trim(u.Path, "/")
 		},
 	},
+}
+
+// Shown hands back the name a service is read by, and the key itself for one
+// this no longer knows: a play imported years ago still has to be drawn.
+func Shown(name string) string {
+	if service, ok := find(name); ok {
+		return service.Shown
+	}
+
+	return name
+}
+
+func Heard(name string) bool {
+	service, ok := find(name)
+
+	return ok && service.Heard
+}
+
+func find(name string) (Service, bool) {
+	for _, service := range services {
+		if service.Name == name {
+			return service, true
+		}
+	}
+
+	return Service{}, false
 }
 
 func Services() []string {
