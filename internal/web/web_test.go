@@ -96,6 +96,7 @@ func TestAnswersOnlyThisMachine(t *testing.T) {
 		"8.8.8.8:5000":     http.StatusForbidden,
 	} {
 		request := httptest.NewRequest("GET", "/api/services", nil)
+		request.Host = "127.0.0.1:7373"
 		request.RemoteAddr = address
 
 		answer := httptest.NewRecorder()
@@ -190,5 +191,52 @@ func TestAPageThatIsNotAPlayEndsWhatWasPlaying(t *testing.T) {
 
 	if page := shown(t, handler); strings.Contains(page, "Now:") {
 		t.Error("still playing after the tab went to a search")
+	}
+}
+
+// A name somebody else owns, pointed at this machine, makes a browser treat
+// their page as this one. The address dialled is loopback either way.
+func TestRefusesANameThatIsNotThisMachine(t *testing.T) {
+	for name, wanted := range map[string]int{
+		"127.0.0.1:7373": http.StatusOK,
+		"localhost:7373": http.StatusOK,
+		"[::1]:7373":     http.StatusOK,
+		"evil.example":   http.StatusForbidden,
+	} {
+		request := httptest.NewRequest("GET", "/api/services", nil)
+		request.Host = name
+		request.RemoteAddr = "127.0.0.1:5000"
+
+		answer := httptest.NewRecorder()
+		Near(serving(t)).ServeHTTP(answer, request)
+
+		if answer.Code != wanted {
+			t.Errorf("%s: got %d, wanted %d", name, answer.Code, wanted)
+		}
+	}
+}
+
+// A page can post to any address it likes without asking the browser first, so
+// long as what it sends looks like a form.
+func TestRefusesAPostThatDidNotMeanToComeHere(t *testing.T) {
+	for kind, wanted := range map[string]int{
+		"application/json":                  http.StatusOK,
+		"application/json; charset=utf-8":   http.StatusOK,
+		"text/plain":                        http.StatusUnsupportedMediaType,
+		"application/x-www-form-urlencoded": http.StatusUnsupportedMediaType,
+		"":                                  http.StatusUnsupportedMediaType,
+	} {
+		request := httptest.NewRequest("POST", "/api/now",
+			strings.NewReader(`{"url":"https://youtu.be/abc","title":"Нечто"}`))
+		request.Host = "127.0.0.1:7373"
+		request.RemoteAddr = "127.0.0.1:5000"
+		request.Header.Set("content-type", kind)
+
+		answer := httptest.NewRecorder()
+		Near(serving(t)).ServeHTTP(answer, request)
+
+		if answer.Code != wanted {
+			t.Errorf("%q: got %d, wanted %d", kind, answer.Code, wanted)
+		}
 	}
 }

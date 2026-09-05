@@ -66,25 +66,73 @@ func (s *Server) Routes() *http.ServeMux {
 	return mux
 }
 
-// Nothing here is reachable from anywhere but this machine, and the check is
-// per request rather than only in the address it listens on: a program that
-// binds loopback and trusts everything it gets is one setting away from being
-// an open door.
+// Nothing here is reachable from anywhere but this machine. Checked per
+// request rather than only in the address it listens on: a program that binds
+// loopback and trusts everything it gets is one setting away from an open door.
+//
+// The name it was called by is checked too. A name somebody else owns, pointed
+// at 127.0.0.1, makes a browser treat their page as this one — and the address
+// dialled is loopback either way, so the first check sees nothing wrong.
+//
+// And that whoever wrote here meant to. A page can post to any address it likes
+// without asking the browser first, so long as what it sends looks like a form
+// — enough to write the list and put anything on the card. It cannot send this
+// content type without asking, and nothing here ever answers that question.
 func Near(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		host, _, err := net.SplitHostPort(r.RemoteAddr)
-		if err != nil {
-			host = r.RemoteAddr
+		if !here(r.RemoteAddr) {
+			http.Error(w, "this answers only this machine", http.StatusForbidden)
+
+			return
 		}
 
-		if ip := net.ParseIP(host); ip == nil || !ip.IsLoopback() {
-			http.Error(w, "this answers only this machine", http.StatusForbidden)
+		if !ours(r.Host) {
+			http.Error(w, "this answers only to its own name", http.StatusForbidden)
+
+			return
+		}
+
+		if r.Method == http.MethodPost && !readable(r.Header.Get("content-type")) {
+			http.Error(w, "this reads json", http.StatusUnsupportedMediaType)
 
 			return
 		}
 
 		next.ServeHTTP(w, r)
 	})
+}
+
+func here(address string) bool {
+	host, _, err := net.SplitHostPort(address)
+	if err != nil {
+		host = address
+	}
+
+	ip := net.ParseIP(host)
+
+	return ip != nil && ip.IsLoopback()
+}
+
+func readable(said string) bool {
+	kind, _, _ := strings.Cut(said, ";")
+
+	return strings.TrimSpace(strings.ToLower(kind)) == "application/json"
+}
+
+// By name as well as by number: localhost is what somebody types.
+func ours(host string) bool {
+	name, _, err := net.SplitHostPort(host)
+	if err != nil {
+		name = host
+	}
+
+	if name == "localhost" {
+		return true
+	}
+
+	ip := net.ParseIP(strings.Trim(name, "[]"))
+
+	return ip != nil && ip.IsLoopback()
 }
 
 type seen struct {
