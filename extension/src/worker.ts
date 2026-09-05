@@ -10,12 +10,24 @@ const SETTLE_MS = 4000;
 // it. A browser killed outright leaves nobody to hand it over.
 const HOLDS_MS = 30000;
 
-const waiting = new Map();
+interface Watching
+{
+    url: string;
+    title: string;
+    by: string;
+    paused: boolean;
+    position: number;
+    length: number;
+}
 
-let playing = null;
+type Said = { gone: true } | { watching: Watching };
+
+const waiting = new Map<number, number>();
+
+let playing: number | null = null;
 let heard = 0;
 
-async function post(where, said)
+async function post(where: string, said: unknown): Promise<void>
 {
     try
     {
@@ -33,28 +45,31 @@ async function post(where, said)
     }
 }
 
-function tell(tab)
+function tell(tab: chrome.tabs.Tab): void
 {
-    if (!tab.url || !tab.url.startsWith('http'))
+    if (tab.id === undefined || !tab.url || !tab.url.startsWith('http'))
     {
         return;
     }
 
-    clearTimeout(waiting.get(tab.id));
+    const id = tab.id;
+    const url = tab.url;
 
-    waiting.set(tab.id, setTimeout(() =>
+    clearTimeout(waiting.get(id));
+
+    waiting.set(id, setTimeout(() =>
     {
-        waiting.delete(tab.id);
-        post('/seen', { url: tab.url, title: tab.title ?? '' });
+        waiting.delete(id);
+        post('/seen', { url, title: tab.title ?? '' });
     }, SETTLE_MS));
 }
 
-chrome.runtime.onMessage.addListener((said, from) =>
+chrome.runtime.onMessage.addListener((said: Said, from: chrome.runtime.MessageSender) =>
 {
     const tab = from.tab?.id ?? null;
     const at = Date.now();
 
-    if (said.gone)
+    if ('gone' in said)
     {
         if (tab !== playing)
         {

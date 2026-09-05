@@ -61,7 +61,7 @@ var services = []Service{
 	},
 	{
 		Name:  "yandex-music",
-		Shown: "Яндекс.Музыка",
+		Shown: "Yandex Music",
 		Heard: true,
 		Hosts: []string{"music.yandex.ru", "music.yandex.com"},
 		Watching: func(u *url.URL) string {
@@ -71,7 +71,7 @@ var services = []Service{
 	},
 	{
 		Name:  "vk-video",
-		Shown: "VK Видео",
+		Shown: "VK Video",
 		Hosts: []string{"vk.com", "vkvideo.ru", "m.vk.com"},
 		Watching: func(u *url.URL) string {
 			return after(u.Path, "/video")
@@ -92,7 +92,7 @@ var services = []Service{
 	},
 	{
 		Name:  "dzen",
-		Shown: "Дзен",
+		Shown: "Dzen",
 		Hosts: []string{"dzen.ru", "www.dzen.ru"},
 		Watching: func(u *url.URL) string {
 			return after(u.Path, "/video/watch/")
@@ -100,7 +100,7 @@ var services = []Service{
 	},
 	{
 		Name:  "ok-video",
-		Shown: "ОК Видео",
+		Shown: "OK Video",
 		Hosts: []string{"ok.ru", "www.ok.ru", "m.ok.ru"},
 		Watching: func(u *url.URL) string {
 			return after(u.Path, "/video/")
@@ -140,7 +140,7 @@ var services = []Service{
 	},
 	{
 		Name:  "kinopoisk",
-		Shown: "Кинопоиск",
+		Shown: "Kinopoisk",
 		Hosts: []string{"hd.kinopoisk.ru", "kinopoisk.ru", "www.kinopoisk.ru"},
 		Watching: func(u *url.URL) string {
 			return under(u.Path, "/watch/", "/film/", "/series/")

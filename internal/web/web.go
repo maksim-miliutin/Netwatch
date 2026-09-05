@@ -24,18 +24,27 @@ var pageSource string
 // Minutes and hours rather than seconds: nobody counts a week in seconds.
 var page = template.Must(template.New("page").Funcs(template.FuncMap{
 	"hours": hours,
+	"times": times,
 }).Parse(pageSource))
 
 func hours(seconds int) string {
 	if seconds < 60 {
-		return fmt.Sprintf("%d сек", seconds)
+		return fmt.Sprintf("%d sec", seconds)
 	}
 
 	if seconds < 3600 {
-		return fmt.Sprintf("%d мин", seconds/60)
+		return fmt.Sprintf("%d min", seconds/60)
 	}
 
-	return fmt.Sprintf("%d ч %d мин", seconds/3600, (seconds%3600)/60)
+	return fmt.Sprintf("%d h %d min", seconds/3600, (seconds%3600)/60)
+}
+
+func times(count int) string {
+	if count == 1 {
+		return "once"
+	}
+
+	return fmt.Sprintf("%d times", count)
 }
 
 type Server struct {

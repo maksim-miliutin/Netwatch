@@ -1,2 +1,4 @@
 netwatch
 netwatch.exe
+node_modules/
+extension/dist/

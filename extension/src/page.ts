@@ -10,7 +10,7 @@ const SITES = 'YouTube|RUTUBE|Rutube|VK Видео|ВКонтакте|Twitch|Д�
 
 const TAIL = new RegExp(`\\s*[-—|]\\s*(${SITES})\\s*$`);
 
-function named()
+function named(): { title: string; by: string }
 {
     const said = navigator.mediaSession.metadata;
 
@@ -23,16 +23,16 @@ function named()
 }
 
 // A preview may play muted beside the thing somebody came for.
-function media()
+function media(): HTMLMediaElement | null
 {
-    const all = [...document.querySelectorAll('video, audio')];
+    const all = [...document.querySelectorAll<HTMLMediaElement>('video, audio')];
 
     return all.find((one) => !one.paused)
         ?? all.find((one) => one.duration > 0)
         ?? null;
 }
 
-function tell(what)
+function send(what: unknown): void
 {
     try
     {
@@ -44,20 +44,20 @@ function tell(what)
     }
 }
 
-function say()
+function say(): void
 {
     const one = media();
 
     if (!one)
     {
-        tell({ gone: true });
+        send({ gone: true });
 
         return;
     }
 
     const { title, by } = named();
 
-    tell(
+    send(
     {
         watching:
         {
@@ -80,7 +80,7 @@ for (const event of ['play', 'pause', 'seeked', 'ended'])
 }
 
 // A page left is over at once; the tick would find it half a minute later.
-window.addEventListener('pagehide', () => tell({ gone: true }));
+window.addEventListener('pagehide', () => send({ gone: true }));
 
 setInterval(say, EVERY_MS);
 say();

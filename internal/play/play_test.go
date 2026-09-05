@@ -115,7 +115,7 @@ func TestIgnoresTheirCatalogues(t *testing.T) {
 }
 
 func TestNamesServicesTheWayPeopleReadThem(t *testing.T) {
-	if got := Shown("yandex-music"); got != "Яндекс.Музыка" {
+	if got := Shown("yandex-music"); got != "Yandex Music" {
 		t.Errorf("got %q", got)
 	}
 

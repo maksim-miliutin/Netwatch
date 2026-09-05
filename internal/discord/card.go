@@ -10,7 +10,7 @@ import (
 // Discord cuts a longer line itself, mid-word and without saying it did.
 const longest = 128
 
-const paused = "На паузе"
+const paused = "Paused"
 
 // What it is on the first line, whose it is on the second, the bar underneath.
 func Card(live now.Live) *Activity {
@@ -81,7 +81,7 @@ func open(address string) (Button, bool) {
 		return Button{}, false
 	}
 
-	return Button{Label: "Открыть", URL: address}, true
+	return Button{Label: "Open", URL: address}, true
 }
 
 // Runes: a Russian title is two bytes a letter. One character is refused by

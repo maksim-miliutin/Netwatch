@@ -1,41 +1,58 @@
 # netwatch
 
-Список того, что смотрелось и слушалось на этой машине. YouTube, RuTube,
-VK Video, Дзен, ОК, Twitch, Kick, VK Play, Кинопоиск, Okko, ivi, Wink,
-Premier, Netflix, Vimeo, Dailymotion, Coub, Яндекс.Музыка — и любая другая
-служба, которую добавишь.
+A list of what was watched and listened to on this machine. YouTube, RuTube,
+VK Video, Dzen, OK, Twitch, Kick, VK Play, Kinopoisk, Okko, ivi, Wink, Premier,
+Netflix, Vimeo, Dailymotion, Coub, Yandex Music — and whatever else you add.
 
-Ничего никуда не уходит: программа слушает только петлю на себя, список лежит
-в файле рядом.
+Nothing goes anywhere: the program listens on loopback only, and the list sits
+in a file beside it.
 
-## Запуск
+## Running
 
 ```
 go build -o netwatch .
 ./netwatch
 ```
 
-Один файл, десять мегабайт, без установки чего бы то ни было. Открой
-`http://127.0.0.1:7373`.
+One file, ten megabytes, nothing to install. Open `http://127.0.0.1:7373`.
 
-## Расширение
+## The extension
 
-Браузер — единственный, кто знает название ролика. Из сети его не достать:
-всё внутри TLS, и видно только адрес сервера да размеры пакетов.
+The browser is the only one who knows the name of a video. It cannot be had off
+the wire: everything is inside TLS, and all that shows is a server address and
+the size of the packets.
 
-Chrome → `chrome://extensions` → «Режим разработчика» → «Загрузить
-распакованное» → папка `extension`.
+It is written in TypeScript, so it has to be built first:
 
-Расширение отправляет адрес и заголовок вкладки **только** на
-`127.0.0.1:7373` — это записано в манифесте, и браузер этого держится.
+```
+cd extension
+npm install
+npm run build
+```
 
-## Добавить службу
+Chrome → `chrome://extensions` → Developer mode → Load unpacked → the
+`extension` folder.
 
-Одна запись в списке `services` в `internal/play/play.go`:
+Two parts. `worker.ts` reads the address and title of a tab, which is what the
+list is made of. `page.ts` runs on the service's own pages and knows what a tab
+cannot: whether the video is running, how far into it the page has got, and
+what it is really called. "Something — YouTube" is the name of a tab, not the
+name of a video.
+
+Whichever tab started playing first keeps the line at the top of the page. A
+second video opened beside it waits rather than taking over halfway through.
+
+Everything goes to `127.0.0.1:7373` and nowhere else. The manifest says so, and
+the browser holds it to that.
+
+## Adding a service
+
+One entry in the `services` list in `internal/play/play.go`:
 
 ```go
 {
     Name:  "goodgame",
+    Shown: "GoodGame",
     Hosts: []string{"goodgame.ru"},
     Watching: func(u *url.URL) string {
         return after(u.Path, "/channel/")
@@ -43,40 +60,46 @@ Chrome → `chrome://extensions` → «Режим разработчика» →
 },
 ```
 
-Больше ничего: ни ветки в `switch`, ни интерфейса, ни регистрации. `Watching`
-отвечает, что именно смотрят по этому адресу, и пустую строку, когда страница
-службы — не просмотр. Поиск на YouTube это всё ещё YouTube и всё ещё не ролик.
+Nothing else in the program: no branch in a `switch`, no interface, no
+registration. `Watching` answers what is being watched at that address, and an
+empty string when the service's page is not a watch at all. A search on YouTube
+is still YouTube and still not a video. `Shown` is the name people read, and
+`Heard: true` is for what somebody listens to rather than watches.
 
-## Сколько времени
+One place outside the program: the address goes into `content_scripts` in the
+extension manifest. A manifest is read before the program starts and cannot ask
+it anything.
 
-Просмотр закрывается следующим — это единственный конец, который у большинства
-из них есть: вкладка знает, когда открылась, и почти никогда не знает, когда
-её бросили.
+## How long
 
-Отсюда два следствия, оба видны на странице. Последний просмотр всегда идёт и
-не посчитан. А вкладка, оставленная на ночь, не считается вовсе: девять часов
-YouTube никто не смотрел, и список, который так говорит, хуже молчащего.
+A play is closed by the next one — the only end most of them get. A tab knows
+when it opened and almost never when it was abandoned.
 
-## История до установки
+Two consequences, both visible on the page. The last play is always running and
+uncounted. And a tab left overnight is not counted at all: nobody watched nine
+hours of YouTube, and a list that says so is worse than one that says nothing.
 
-Расширение видит только то, что открыто с тех пор, как его поставили. Всё
-остальное отдаёт сама служба.
+## History from before
 
-Google: `takeout.google.com` → только YouTube → «история» → JSON. В архиве
-лежит `watch-history.json`.
+The extension sees only what was opened since it was installed. The rest the
+service hands over itself.
+
+Google: `takeout.google.com` → YouTube only → history → JSON. The archive holds
+`watch-history.json`.
 
 ```
 ./netwatch -import watch-history.json
 ```
 
-Запустить дважды ничего не испортит: то же самое второй раз не запишется. Тот,
-кто не уверен, сработало ли, запустит ещё раз — и это правильно.
+Running it twice costs nothing: the same thing is not written again. Whoever is
+unsure whether it worked will run it again, and that is right.
 
-Строки без адреса пропускаются: у снятого ролика не на что показывать. Поиск
-тоже — это страница службы, а не просмотр.
+Rows without an address are skipped — a video taken down has nothing to point
+at. So are searches: a page of the service, not a watch.
 
-## Что дальше
+## Next
 
-- Сколько времени по-настоящему: расширение знает, когда вкладку закрыли
-- Итоги по дням, а не только за неделю
-- Яндекс.Музыка отдаёт историю через свой ключ — ввоз оттуда
+- How long for real: the page already says when it was left
+- Days as well as weeks
+- Yandex Music hands over a history through a key of its own
+- What plays, on a Discord card

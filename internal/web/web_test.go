@@ -131,7 +131,7 @@ func TestAddsUpTheWeek(t *testing.T) {
 // Nobody counts a week in seconds.
 func TestSaysHowLongInWordsPeopleUse(t *testing.T) {
 	for seconds, wanted := range map[int]string{
-		45: "45 сек", 300: "5 мин", 3900: "1 ч 5 мин",
+		45: "45 sec", 300: "5 min", 3900: "1 h 5 min",
 	} {
 		if got := hours(seconds); got != wanted {
 			t.Errorf("%d: got %q, wanted %q", seconds, got, wanted)
@@ -159,13 +159,13 @@ func TestKeepsWhatAPlayingPageSaysAboutItself(t *testing.T) {
 		t.Fatalf("got %d %s", answer.Code, answer.Body)
 	}
 
-	if page := shown(t, handler); !strings.Contains(page, "Сейчас: <b>Нечто</b>") {
+	if page := shown(t, handler); !strings.Contains(page, "Now: <b>Нечто</b>") {
 		t.Errorf("the page says nothing about it: %s", page)
 	}
 }
 
 func TestSaysNothingIsOnUntilSomethingIs(t *testing.T) {
-	if page := shown(t, serving(t)); strings.Contains(page, "Сейчас:") {
+	if page := shown(t, serving(t)); strings.Contains(page, "Now:") {
 		t.Errorf("something plays on a machine nobody touched: %s", page)
 	}
 }
@@ -176,7 +176,7 @@ func TestStopsWhenTheTabIsGone(t *testing.T) {
 	sent(t, handler, "/api/now", `{"url":"https://youtu.be/abc","title":"Нечто"}`)
 	sent(t, handler, "/api/gone", `{}`)
 
-	if page := shown(t, handler); strings.Contains(page, "Сейчас:") {
+	if page := shown(t, handler); strings.Contains(page, "Now:") {
 		t.Error("still playing after the tab went")
 	}
 }
@@ -188,7 +188,7 @@ func TestAPageThatIsNotAPlayEndsWhatWasPlaying(t *testing.T) {
 	sent(t, handler, "/api/now", `{"url":"https://youtu.be/abc","title":"Нечто"}`)
 	sent(t, handler, "/api/now", `{"url":"https://www.youtube.com/results?q=нечто","title":"Поиск"}`)
 
-	if page := shown(t, handler); strings.Contains(page, "Сейчас:") {
+	if page := shown(t, handler); strings.Contains(page, "Now:") {
 		t.Error("still playing after the tab went to a search")
 	}
 }

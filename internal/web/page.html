@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ru">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta http-equiv="refresh" content="10">
@@ -7,26 +7,26 @@
 </head>
 <body>
     <h1>netwatch</h1>
-    <p>Что смотрелось и слушалось. Только на этой машине.</p>
+    <p>What was watched and listened to. On this machine only.</p>
 
     {{if .Now.Playing}}
-    <p>Сейчас: <b>{{.Now.Title}}</b> — {{.Now.Service}}{{if .Now.Paused}}, на паузе{{end}}</p>
+    <p>Now: <b>{{.Now.Title}}</b> — {{.Now.Service}}{{if .Now.Paused}}, paused{{end}}</p>
     {{end}}
 
     {{with .Week}}
-    <h2>За неделю</h2>
-    <p>{{.Plays}} раз{{if .Seconds}}, {{hours .Seconds}}{{end}}</p>
+    <h2>This week</h2>
+    <p>{{times .Plays}}{{if .Seconds}}, {{hours .Seconds}}{{end}}</p>
 
     <ul>
         {{range .Services}}
-        <li>{{.Name}} — {{if .Seconds}}{{hours .Seconds}}{{else}}{{.Plays}} раз{{end}}</li>
+        <li>{{.Name}} — {{if .Seconds}}{{hours .Seconds}}{{else}}{{times .Plays}}{{end}}</li>
         {{end}}
     </ul>
 
-    {{if .Open}}<p>Ещё {{.Open}} не досчитано: просмотр закрывается следующим.</p>{{end}}
+    {{if .Open}}<p>{{.Open}} still uncounted: a play is closed by the next one.</p>{{end}}
     {{end}}
 
-    <h2>Список</h2>
+    <h2>Plays</h2>
 
     <table>
         {{range .Plays}}
@@ -37,7 +37,7 @@
             <td>{{.At.Format "02.01 15:04"}}</td>
         </tr>
         {{else}}
-        <tr><td>Пока пусто. Поставь расширение и открой ролик.</td></tr>
+        <tr><td>Nothing yet. Install the extension and open a video.</td></tr>
         {{end}}
     </table>
 </body>
