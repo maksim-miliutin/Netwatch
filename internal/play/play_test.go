@@ -74,3 +74,42 @@ func TestKeepsTheTimeInOneZone(t *testing.T) {
 		t.Errorf("kept %v, and a list sorted across zones is not sorted", got.At.Location())
 	}
 }
+
+func TestRecognisesTheOtherServices(t *testing.T) {
+	for address, wanted := range map[string]string{
+		"https://dzen.ru/video/watch/64f0ab":       "dzen",
+		"https://ok.ru/video/8123456":              "ok-video",
+		"https://vimeo.com/347119375":              "vimeo",
+		"https://www.dailymotion.com/video/x8abcd": "dailymotion",
+		"https://coub.com/view/2abcde":             "coub",
+		"https://www.netflix.com/watch/81234567":   "netflix",
+		"https://hd.kinopoisk.ru/watch/4d1eba8b":   "kinopoisk",
+		"https://okko.tv/movie/nechto":             "okko",
+		"https://www.ivi.ru/watch/199617":          "ivi",
+		"https://wink.ru/movies/nechto":            "wink",
+		"https://premier.one/show/nechto":          "premier",
+		"https://kick.com/somebody":                "kick",
+		"https://live.vkplay.ru/somebody":          "vkplay",
+	} {
+		one, ok := Recognise(address, "Нечто", time.Now())
+
+		if !ok || one.Service != wanted {
+			t.Errorf("%s: got %q %v", address, one.Service, ok)
+		}
+	}
+}
+
+// A catalogue is a page somebody browsed, not a film they watched.
+func TestIgnoresTheirCatalogues(t *testing.T) {
+	for _, address := range []string{
+		"https://www.ivi.ru/new",
+		"https://okko.tv/collections/hits",
+		"https://vimeo.com/upgrade",
+		"https://dzen.ru/news",
+		"https://premier.one/",
+	} {
+		if _, ok := Recognise(address, "Нечто", time.Now()); ok {
+			t.Errorf("%s counted as a watch", address)
+		}
+	}
+}

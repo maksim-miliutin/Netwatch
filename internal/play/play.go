@@ -76,6 +76,101 @@ var services = []Service{
 			return strings.Trim(u.Path, "/")
 		},
 	},
+	{
+		Name:  "dzen",
+		Hosts: []string{"dzen.ru", "www.dzen.ru"},
+		Watching: func(u *url.URL) string {
+			return after(u.Path, "/video/watch/")
+		},
+	},
+	{
+		Name:  "ok-video",
+		Hosts: []string{"ok.ru", "www.ok.ru", "m.ok.ru"},
+		Watching: func(u *url.URL) string {
+			return after(u.Path, "/video/")
+		},
+	},
+	{
+		Name:  "vimeo",
+		Hosts: []string{"vimeo.com", "www.vimeo.com", "player.vimeo.com"},
+		Watching: func(u *url.URL) string {
+			return numbered(u.Path)
+		},
+	},
+	{
+		Name:  "dailymotion",
+		Hosts: []string{"dailymotion.com", "www.dailymotion.com"},
+		Watching: func(u *url.URL) string {
+			return after(u.Path, "/video/")
+		},
+	},
+	{
+		Name:  "coub",
+		Hosts: []string{"coub.com", "www.coub.com"},
+		Watching: func(u *url.URL) string {
+			return after(u.Path, "/view/")
+		},
+	},
+	{
+		Name:  "netflix",
+		Hosts: []string{"netflix.com", "www.netflix.com"},
+		Watching: func(u *url.URL) string {
+			return after(u.Path, "/watch/")
+		},
+	},
+	{
+		Name:  "kinopoisk",
+		Hosts: []string{"hd.kinopoisk.ru", "kinopoisk.ru", "www.kinopoisk.ru"},
+		Watching: func(u *url.URL) string {
+			return under(u.Path, "/watch/", "/film/", "/series/")
+		},
+	},
+	{
+		Name:  "okko",
+		Hosts: []string{"okko.tv", "www.okko.tv"},
+		Watching: func(u *url.URL) string {
+			return under(u.Path, "/movie/", "/serial/", "/video/")
+		},
+	},
+	{
+		Name:  "ivi",
+		Hosts: []string{"ivi.ru", "www.ivi.ru"},
+		Watching: func(u *url.URL) string {
+			return under(u.Path, "/watch/")
+		},
+	},
+	{
+		Name:  "wink",
+		Hosts: []string{"wink.ru", "www.wink.ru"},
+		Watching: func(u *url.URL) string {
+			return under(u.Path, "/movies/", "/series/", "/channels/")
+		},
+	},
+	{
+		Name:  "premier",
+		Hosts: []string{"premier.one", "www.premier.one"},
+		Watching: func(u *url.URL) string {
+			return under(u.Path, "/show/", "/movie/")
+		},
+	},
+	{
+		Name:  "kick",
+		Hosts: []string{"kick.com", "www.kick.com"},
+		Watching: func(u *url.URL) string {
+			if id := after(u.Path, "/video/"); id != "" {
+				return id
+			}
+
+			return strings.Trim(u.Path, "/")
+		},
+	},
+	{
+		Name:  "vkplay",
+		Hosts: []string{"live.vkplay.ru", "vkplay.live"},
+		Watching: func(u *url.URL) string {
+			return strings.Trim(u.Path, "/")
+		},
+	},
 }
 
 func Services() []string {
@@ -138,4 +233,31 @@ func after(path, marker string) string {
 	}
 
 	return rest
+}
+
+// under is what follows any of these path parts, and nothing when the path is
+// under none of them. A cinema names a film in the path rather than in a
+// parameter, and the rest of the path does for an id: what is needed is
+// telling one film from the next, not matching whatever shape the site uses
+// this year.
+func under(path string, parts ...string) string {
+	for _, part := range parts {
+		if strings.HasPrefix(path, part) {
+			return strings.Trim(strings.TrimPrefix(path, part), "/")
+		}
+	}
+
+	return ""
+}
+
+// numbered is the last part of a path when it is a number, which is the whole
+// of how Vimeo names a film: vimeo.com/347119375.
+func numbered(path string) string {
+	last := path[strings.LastIndex(path, "/")+1:]
+
+	if last == "" || strings.TrimLeft(last, "0123456789") != "" {
+		return ""
+	}
+
+	return last
 }
