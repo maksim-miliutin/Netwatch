@@ -128,3 +128,49 @@ func TestNamesServicesTheWayPeopleReadThem(t *testing.T) {
 		t.Error("music is watched or video is listened to")
 	}
 }
+
+func TestRecognisesMusicAndForeignServices(t *testing.T) {
+	for address, wanted := range map[string]string{
+		"https://music.youtube.com/watch?v=abc":          "youtube-music",
+		"https://open.spotify.com/track/4cOdK2wGLETKBW3": "spotify",
+		"https://open.spotify.com/intl-ru/album/1DFixLW": "spotify",
+		"https://soundcloud.com/somebody/a-song":         "soundcloud",
+		"https://music.apple.com/us/album/nechto/1234":   "apple-music",
+		"https://www.deezer.com/en/track/3135556":        "deezer",
+		"https://zvuk.com/track/12345":                   "zvuk",
+		"https://www.mixcloud.com/somebody/a-show/":      "mixcloud",
+		"https://www.tiktok.com/@somebody/video/7123":    "tiktok",
+		"https://www.bilibili.com/video/BV1xx411":        "bilibili",
+		"https://www.crunchyroll.com/watch/GRDQ/nechto":  "crunchyroll",
+		"https://www.disneyplus.com/en-gb/video/abc-123": "disney-plus",
+		"https://play.max.com/video/watch/abc/def":       "max",
+		"https://www.primevideo.com/detail/0ABCDE":       "prime-video",
+		"https://tv.apple.com/us/episode/nechto/umc.1":   "apple-tv",
+		"https://www.hulu.com/watch/abc-123":             "hulu",
+		"https://nebula.tv/videos/a-slug":                "nebula",
+		"https://odysee.com/@somebody/a-video":           "odysee",
+		"https://www.nicovideo.jp/watch/sm9":             "nicovideo",
+		"https://trovo.live/s/somebody":                  "trovo",
+	} {
+		one, ok := Recognise(address, "Something", time.Now())
+
+		if !ok || one.Service != wanted {
+			t.Errorf("%s: got %q %v", address, one.Service, ok)
+		}
+	}
+}
+
+// A person is not a track, and a front page is not a film.
+func TestIgnoresProfilesAndFrontPages(t *testing.T) {
+	for _, address := range []string{
+		"https://soundcloud.com/somebody",
+		"https://odysee.com/@somebody",
+		"https://open.spotify.com/search/nechto",
+		"https://www.tiktok.com/@somebody",
+		"https://www.hulu.com/hub/movies",
+	} {
+		if _, ok := Recognise(address, "Something", time.Now()); ok {
+			t.Errorf("%s counted as a watch", address)
+		}
+	}
+}

@@ -198,6 +198,167 @@ var services = []Service{
 			return strings.Trim(u.Path, "/")
 		},
 	},
+	{
+		Name:  "youtube-music",
+		Shown: "YouTube Music",
+		Heard: true,
+		Hosts: []string{"music.youtube.com"},
+		Watching: func(u *url.URL) string {
+			return u.Query().Get("v")
+		},
+	},
+	{
+		Name:  "spotify",
+		Shown: "Spotify",
+		Heard: true,
+		Hosts: []string{"open.spotify.com", "play.spotify.com"},
+		Watching: func(u *url.URL) string {
+			return piece(u.Path, "/track/", "/album/", "/playlist/", "/episode/", "/show/")
+		},
+	},
+	{
+		Name:  "soundcloud",
+		Shown: "SoundCloud",
+		Heard: true,
+		Hosts: []string{"soundcloud.com", "m.soundcloud.com", "on.soundcloud.com"},
+		Watching: func(u *url.URL) string {
+			// A name on its own is a person; a name with something under it is
+			// a track by that person.
+			return deep(u.Path, 2)
+		},
+	},
+	{
+		Name:  "apple-music",
+		Shown: "Apple Music",
+		Heard: true,
+		Hosts: []string{"music.apple.com"},
+		Watching: func(u *url.URL) string {
+			return piece(u.Path, "/album/", "/playlist/", "/song/")
+		},
+	},
+	{
+		Name:  "deezer",
+		Shown: "Deezer",
+		Heard: true,
+		Hosts: []string{"deezer.com", "www.deezer.com"},
+		Watching: func(u *url.URL) string {
+			return piece(u.Path, "/track/", "/album/", "/playlist/", "/episode/")
+		},
+	},
+	{
+		Name:  "zvuk",
+		Shown: "Zvuk",
+		Heard: true,
+		Hosts: []string{"zvuk.com", "www.zvuk.com", "sber-zvuk.com"},
+		Watching: func(u *url.URL) string {
+			return piece(u.Path, "/track/", "/release/", "/playlist/")
+		},
+	},
+	{
+		Name:  "mixcloud",
+		Shown: "Mixcloud",
+		Heard: true,
+		Hosts: []string{"mixcloud.com", "www.mixcloud.com"},
+		Watching: func(u *url.URL) string {
+			return deep(u.Path, 2)
+		},
+	},
+	{
+		Name:  "tiktok",
+		Shown: "TikTok",
+		Hosts: []string{"tiktok.com", "www.tiktok.com", "vm.tiktok.com"},
+		Watching: func(u *url.URL) string {
+			return after(u.Path, "/video/")
+		},
+	},
+	{
+		Name:  "bilibili",
+		Shown: "Bilibili",
+		Hosts: []string{"bilibili.com", "www.bilibili.com", "m.bilibili.com"},
+		Watching: func(u *url.URL) string {
+			return after(u.Path, "/video/")
+		},
+	},
+	{
+		Name:  "crunchyroll",
+		Shown: "Crunchyroll",
+		Hosts: []string{"crunchyroll.com", "www.crunchyroll.com"},
+		Watching: func(u *url.URL) string {
+			return after(u.Path, "/watch/")
+		},
+	},
+	{
+		Name:  "disney-plus",
+		Shown: "Disney+",
+		Hosts: []string{"disneyplus.com", "www.disneyplus.com"},
+		Watching: func(u *url.URL) string {
+			return after(u.Path, "/video/")
+		},
+	},
+	{
+		Name:  "max",
+		Shown: "Max",
+		Hosts: []string{"max.com", "www.max.com", "play.max.com"},
+		Watching: func(u *url.URL) string {
+			return piece(u.Path, "/video/", "/movie/", "/show/")
+		},
+	},
+	{
+		Name:  "prime-video",
+		Shown: "Prime Video",
+		Hosts: []string{"primevideo.com", "www.primevideo.com"},
+		Watching: func(u *url.URL) string {
+			return piece(u.Path, "/detail/", "/watch/")
+		},
+	},
+	{
+		Name:  "apple-tv",
+		Shown: "Apple TV+",
+		Hosts: []string{"tv.apple.com"},
+		Watching: func(u *url.URL) string {
+			return piece(u.Path, "/episode/", "/movie/", "/show/")
+		},
+	},
+	{
+		Name:  "hulu",
+		Shown: "Hulu",
+		Hosts: []string{"hulu.com", "www.hulu.com"},
+		Watching: func(u *url.URL) string {
+			return after(u.Path, "/watch/")
+		},
+	},
+	{
+		Name:  "nebula",
+		Shown: "Nebula",
+		Hosts: []string{"nebula.tv", "www.nebula.tv"},
+		Watching: func(u *url.URL) string {
+			return after(u.Path, "/videos/")
+		},
+	},
+	{
+		Name:  "odysee",
+		Shown: "Odysee",
+		Hosts: []string{"odysee.com", "www.odysee.com"},
+		Watching: func(u *url.URL) string {
+			return deep(u.Path, 2)
+		},
+	},
+	{
+		Name:  "nicovideo",
+		Shown: "Niconico",
+		Hosts: []string{"nicovideo.jp", "www.nicovideo.jp", "sp.nicovideo.jp"},
+		Watching: func(u *url.URL) string {
+			return after(u.Path, "/watch/")
+		},
+	},
+	{
+		Name:  "trovo",
+		Shown: "Trovo",
+		Hosts: []string{"trovo.live", "www.trovo.live"},
+		Watching: func(u *url.URL) string {
+			return after(u.Path, "/s/")
+		},
+	},
 }
 
 // Shown hands back the name a service is read by, and the key itself for one
@@ -313,4 +474,29 @@ func numbered(path string) string {
 	}
 
 	return last
+}
+
+// piece is what follows whichever of these markers the address uses. A site
+// that names a track, an album and a playlist the same way needs one rule
+// rather than three services.
+func piece(path string, markers ...string) string {
+	for _, marker := range markers {
+		if id := after(path, marker); id != "" {
+			return id
+		}
+	}
+
+	return ""
+}
+
+// deep is the path when it goes at least that many parts down. It is how a
+// site that names a track after its author tells one from a profile page.
+func deep(path string, parts int) string {
+	trimmed := strings.Trim(path, "/")
+
+	if trimmed == "" || strings.Count(trimmed, "/") < parts-1 {
+		return ""
+	}
+
+	return trimmed
 }

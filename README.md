@@ -1,8 +1,8 @@
 # netwatch
 
-A list of what was watched and listened to on this machine. YouTube, RuTube,
-VK Video, Dzen, OK, Twitch, Kick, VK Play, Kinopoisk, Okko, ivi, Wink, Premier,
-Netflix, Vimeo, Dailymotion, Coub, Yandex Music — and whatever else you add.
+A list of what was watched and listened to on this machine. YouTube, Twitch,
+Kinopoisk, Okko, Netflix, Prime Video, TikTok, Spotify, Apple Music, Yandex
+Music — thirty-seven services in all, and whatever else you add.
 
 Nothing goes anywhere: the program listens on loopback only, and the list sits
 in a file beside it.
