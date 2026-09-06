@@ -132,3 +132,18 @@ func TestLetsGoOfAClientThatStoppedAnswering(t *testing.T) {
 		t.Error("did not put the next try off")
 	}
 }
+
+// A service kept off the card looks, from Discord's side, like nothing playing.
+func TestSendsNothingForAServiceKeptQuiet(t *testing.T) {
+	f, heard := following(t, answer{frame, took})
+	f.hidden = func(service string) bool { return service == "youtube" }
+
+	at := time.Now()
+	watched(f, "a", at, 0)
+
+	f.update(at)
+
+	if sent := string((<-heard).body); !strings.Contains(sent, `"activity":null`) {
+		t.Errorf("sent %s for a service kept quiet", sent)
+	}
+}

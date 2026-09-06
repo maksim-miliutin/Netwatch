@@ -43,6 +43,11 @@
                     padding-right: 0; }
 
     a { color: inherit; }
+
+    .card { margin: 2.5rem 0 0; }
+    .card label { display: inline-block; margin: 0 1rem 0.3rem 0; font-size: 0.9rem; }
+    .card button { margin-top: 0.6rem; font: inherit; font-size: 0.85rem;
+                   padding: 0.3rem 0.9rem; }
 </style>
 </head>
 <body>
@@ -101,6 +106,24 @@
     {{end}}
 
     {{if .More}}<p class="quiet">{{.More}} older in the file.</p>{{end}}
+
+    {{if .Choices}}
+    <h2>On the card</h2>
+    <p class="quiet">Unticked services stay out of Discord. The list keeps them
+    either way.</p>
+
+    <form class="card" method="post" action="/api/quiet">
+        {{range .Choices}}
+        <label>
+            <input type="hidden" name="service" value="{{.Name}}">
+            <input type="checkbox" name="show" value="{{.Name}}"{{if .Shown}} checked{{end}}>
+            {{.Name}}
+        </label>
+        {{end}}
+
+        <div><button>Save</button></div>
+    </form>
+    {{end}}
 <script>
 // The bar moves on its own between reloads. Everything it needs is already on
 // the page, so there is nothing to ask anybody for.

@@ -9,11 +9,13 @@ import (
 	"html/template"
 	"net"
 	"net/http"
+	"sort"
 	"strings"
 	"time"
 
 	"netwatch/internal/now"
 	"netwatch/internal/play"
+	"netwatch/internal/quiet"
 	"netwatch/internal/store"
 	"netwatch/internal/sum"
 )
@@ -51,6 +53,7 @@ func times(count int) string {
 type Server struct {
 	Store    *store.Store
 	Watching *now.Watch
+	Quiet    *quiet.List
 }
 
 func (s *Server) Routes() *http.ServeMux {
@@ -61,6 +64,7 @@ func (s *Server) Routes() *http.ServeMux {
 	mux.HandleFunc("POST /api/now", s.playing)
 	mux.HandleFunc("POST /api/gone", s.gone)
 	mux.HandleFunc("GET /api/now", s.showing)
+	mux.HandleFunc("POST /api/quiet", s.hiding)
 	mux.HandleFunc("GET /api/plays", s.plays)
 	mux.HandleFunc("GET /api/services", s.services)
 	mux.HandleFunc("GET /api/week", s.week)
@@ -94,8 +98,9 @@ func Near(next http.Handler) http.Handler {
 			return
 		}
 
-		if r.Method == http.MethodPost && !readable(r.Header.Get("content-type")) {
-			http.Error(w, "this reads json", http.StatusUnsupportedMediaType)
+		if r.Method == http.MethodPost && !meant(r) {
+			http.Error(w, "this reads json, or a form off its own page",
+				http.StatusUnsupportedMediaType)
 
 			return
 		}
@@ -113,6 +118,19 @@ func here(address string) bool {
 	ip := net.ParseIP(host)
 
 	return ip != nil && ip.IsLoopback()
+}
+
+// Two ways in. JSON is one: a page cannot send that type across sites without
+// asking first, and nothing here answers. A form is the other, and a browser
+// says where a form came from — so it has to have come from this page.
+func meant(r *http.Request) bool {
+	if readable(r.Header.Get("content-type")) {
+		return true
+	}
+
+	came := r.Header.Get("origin")
+
+	return came == "http://"+r.Host || came == "https://"+r.Host
 }
 
 func readable(said string) bool {
@@ -261,6 +279,71 @@ func (s *Server) showing(w http.ResponseWriter, r *http.Request) {
 	answer(w, s.onNow())
 }
 
+// A Choice is one service and whether it goes on the card.
+type Choice struct {
+	Name  string
+	Shown bool
+}
+
+// Only the services somebody has actually watched, plus whatever is hidden.
+// All thirty-odd would be a wall of boxes for services nobody here uses.
+func (s *Server) choices(plays []play.Play) []Choice {
+	seen := map[string]bool{}
+
+	for _, one := range plays {
+		seen[one.Service] = true
+	}
+
+	for _, name := range s.Quiet.Names() {
+		seen[name] = true
+	}
+
+	names := make([]string, 0, len(seen))
+	for name := range seen {
+		names = append(names, name)
+	}
+
+	sort.Strings(names)
+
+	choices := make([]Choice, 0, len(names))
+	for _, name := range names {
+		choices = append(choices, Choice{Name: name, Shown: !s.Quiet.Hidden(name)})
+	}
+
+	return choices
+}
+
+func (s *Server) hiding(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "unreadable", http.StatusBadRequest)
+
+		return
+	}
+
+	// The form says what to show, and everything else it knew about is hidden.
+	// A service the form never heard of stays as it was.
+	shown := map[string]bool{}
+	for _, name := range r.Form["show"] {
+		shown[name] = true
+	}
+
+	var hidden []string
+
+	for _, name := range r.Form["service"] {
+		if !shown[name] {
+			hidden = append(hidden, name)
+		}
+	}
+
+	if err := s.Quiet.Hide(hidden); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+
+		return
+	}
+
+	http.Redirect(w, r, "/", http.StatusSeeOther)
+}
+
 // Shows is how much of the list the page draws. A Takeout import is tens of
 // thousands of rows, and the page redraws itself every ten seconds: all of it
 // is a page nobody scrolls and a file read for nothing.
@@ -273,11 +356,11 @@ type Day struct {
 	Plays   []play.Play
 }
 
-func byDay(plays []play.Play) []Day {
+func byDay(plays []play.Play, at time.Time) []Day {
 	var days []Day
 
 	for _, one := range plays {
-		date := one.At.Format("Monday, 2 January")
+		date := dated(one.At, at)
 
 		if len(days) == 0 || days[len(days)-1].Date != date {
 			days = append(days, Day{Date: date})
@@ -288,6 +371,29 @@ func byDay(plays []play.Play) []Day {
 	}
 
 	return days
+}
+
+// The two days people read most get words instead of a date, which is
+// something to work out.
+func dated(when, at time.Time) string {
+	when, at = when.Local(), at.Local()
+
+	if sameDay(when, at) {
+		return "Today"
+	}
+
+	if sameDay(when, at.AddDate(0, 0, -1)) {
+		return "Yesterday"
+	}
+
+	return when.Format("Monday, 2 January")
+}
+
+func sameDay(one, other time.Time) bool {
+	year, month, day := one.Date()
+	otherYear, otherMonth, otherDay := other.Date()
+
+	return year == otherYear && month == otherMonth && day == otherDay
 }
 
 // Minutes and seconds, and hours only when there are any: 4:07 rather than
@@ -386,11 +492,12 @@ func (s *Server) show(w http.ResponseWriter, r *http.Request) {
 	}
 
 	_ = page.Execute(w, struct {
-		Now  Now
-		Days []Day
-		Week sum.Total
-		More int
-	}{s.onNow(), byDay(plays), week, more})
+		Now     Now
+		Days    []Day
+		Week    sum.Total
+		More    int
+		Choices []Choice
+	}{s.onNow(), byDay(plays, time.Now()), week, more, s.choices(plays)})
 }
 
 func answer(w http.ResponseWriter, body any) {

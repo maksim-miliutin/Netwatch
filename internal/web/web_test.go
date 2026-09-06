@@ -11,8 +11,20 @@ import (
 
 	"netwatch/internal/now"
 	"netwatch/internal/play"
+	"netwatch/internal/quiet"
 	"netwatch/internal/store"
 )
+
+func hushed(t *testing.T) *quiet.List {
+	t.Helper()
+
+	list, err := quiet.Open(filepath.Join(t.TempDir(), "quiet"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	return list
+}
 
 func serving(t *testing.T) http.Handler {
 	t.Helper()
@@ -22,7 +34,7 @@ func serving(t *testing.T) http.Handler {
 		t.Fatal(err)
 	}
 
-	return (&Server{Store: kept, Watching: now.New()}).Routes()
+	return (&Server{Store: kept, Watching: now.New(), Quiet: hushed(t)}).Routes()
 }
 
 func post(t *testing.T, handler http.Handler, body string) *httptest.ResponseRecorder {
@@ -267,7 +279,7 @@ func TestDrawsOnlySoMuchOfTheList(t *testing.T) {
 		}
 	}
 
-	handler := (&Server{Store: kept, Watching: now.New()}).Routes()
+	handler := (&Server{Store: kept, Watching: now.New(), Quiet: hushed(t)}).Routes()
 	page := shown(t, handler)
 
 	if strings.Count(page, "<tr>") != Shows {
@@ -301,5 +313,78 @@ func TestTellsThePopupWhatIsPlaying(t *testing.T) {
 		if !strings.Contains(on.Body.String(), want) {
 			t.Errorf("got %s, without %s", on.Body, want)
 		}
+	}
+}
+
+// A date is something to work out. The two days people read most should not
+// need working out.
+func TestSaysTodayAndYesterdayInWords(t *testing.T) {
+	at := time.Date(2026, time.September, 5, 18, 0, 0, 0, time.Local)
+
+	for _, when := range []struct {
+		played time.Time
+		wanted string
+	}{
+		{at.Add(-time.Hour), "Today"},
+		{at.AddDate(0, 0, -1), "Yesterday"},
+		{at.AddDate(0, 0, -3), "Wednesday, 2 September"},
+	} {
+		one := play.Play{Service: "youtube", ID: "a", At: when.played}
+
+		if got := byDay([]play.Play{one}, at)[0].Date; got != when.wanted {
+			t.Errorf("got %q, wanted %q", got, when.wanted)
+		}
+	}
+}
+
+// A play just before midnight and one just after are two days, not one, even
+// though barely a minute went by.
+func TestMidnightStartsANewDay(t *testing.T) {
+	at := time.Date(2026, time.September, 5, 12, 0, 0, 0, time.Local)
+
+	late := play.Play{Service: "youtube", ID: "a", At: at.AddDate(0, 0, -1).Add(11*time.Hour + 59*time.Minute)}
+	early := play.Play{Service: "youtube", ID: "b", At: at.Add(-11*time.Hour - 59*time.Minute)}
+
+	if days := byDay([]play.Play{early, late}, at); len(days) != 2 {
+		t.Errorf("got %d days, wanted two", len(days))
+	}
+}
+
+// A form off the page is the other way in: a browser says where a form came
+// from, and this one has to have come from here.
+func TestTakesTheFormThatChoosesServices(t *testing.T) {
+	handler := serving(t)
+
+	body := strings.NewReader("service=youtube&service=twitch&show=youtube")
+
+	request := httptest.NewRequest("POST", "/api/quiet", body)
+	request.Host = "127.0.0.1:7373"
+	request.RemoteAddr = "127.0.0.1:5000"
+	request.Header.Set("content-type", "application/x-www-form-urlencoded")
+	request.Header.Set("origin", "http://127.0.0.1:7373")
+
+	answer := httptest.NewRecorder()
+	Near(handler).ServeHTTP(answer, request)
+
+	if answer.Code != http.StatusSeeOther {
+		t.Fatalf("got %d %s", answer.Code, answer.Body)
+	}
+}
+
+// The same form from somebody else's page is refused: a card is read by
+// everybody in a server, and who chooses what goes on it matters.
+func TestRefusesTheSameFormFromSomewhereElse(t *testing.T) {
+	request := httptest.NewRequest("POST", "/api/quiet",
+		strings.NewReader("service=youtube"))
+	request.Host = "127.0.0.1:7373"
+	request.RemoteAddr = "127.0.0.1:5000"
+	request.Header.Set("content-type", "application/x-www-form-urlencoded")
+	request.Header.Set("origin", "https://evil.example")
+
+	answer := httptest.NewRecorder()
+	Near(serving(t)).ServeHTTP(answer, request)
+
+	if answer.Code != http.StatusUnsupportedMediaType {
+		t.Errorf("got %d, wanted it refused", answer.Code)
 	}
 }

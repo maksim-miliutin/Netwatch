@@ -23,11 +23,12 @@ const Again = 10 * time.Second
 
 // Follow keeps Discord showing what is playing, and returns when the context
 // is done.
-func Follow(ctx context.Context, id string, watching *now.Watch, say func(string)) {
+func Follow(ctx context.Context, id string, watching *now.Watch,
+	hidden func(string) bool, say func(string)) {
 	beat := time.NewTicker(Beat)
 	defer beat.Stop()
 
-	f := &follower{id: id, watching: watching, say: say}
+	f := &follower{id: id, watching: watching, hidden: hidden, say: say}
 
 	// Closing the socket is what takes the card down: Discord drops the
 	// activity of a program that is no longer there.
@@ -47,6 +48,7 @@ func Follow(ctx context.Context, id string, watching *now.Watch, say func(string
 type follower struct {
 	id       string
 	watching *now.Watch
+	hidden   func(string) bool
 	say      func(string)
 
 	to    *Presence
@@ -97,7 +99,9 @@ func (f *follower) connect(at time.Time) {
 func (f *follower) update(at time.Time) {
 	var card *Activity
 
-	if live, ok := f.watching.Playing(at); ok {
+	// A service somebody kept off the card looks, from Discord's side, exactly
+	// like nothing playing. The list keeps it either way.
+	if live, ok := f.watching.Playing(at); ok && !f.quiet(live.Play.Service) {
 		card = Card(live)
 	}
 
@@ -121,6 +125,10 @@ func (f *follower) update(at time.Time) {
 
 	f.shown = next
 	f.sent = at
+}
+
+func (f *follower) quiet(service string) bool {
+	return f.hidden != nil && f.hidden(service)
 }
 
 func (f *follower) drop() {

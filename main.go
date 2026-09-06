@@ -19,6 +19,7 @@ import (
 
 	"netwatch/internal/discord"
 	"netwatch/internal/now"
+	"netwatch/internal/quiet"
 	"netwatch/internal/store"
 	"netwatch/internal/takeout"
 	"netwatch/internal/web"
@@ -55,8 +56,13 @@ func main() {
 		log.Fatal(err)
 	}
 
+	hushed, err := quiet.Open(filepath.Join(filepath.Dir(where), "quiet"))
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	watching := now.New()
-	server := &web.Server{Store: kept, Watching: watching}
+	server := &web.Server{Store: kept, Watching: watching, Quiet: hushed}
 	address := fmt.Sprintf("127.0.0.1:%d", *port)
 
 	// The port is taken before anything is said about it. Saying it first and
@@ -72,9 +78,10 @@ func main() {
 	// The card is the one thing here that leaves the machine, so it runs only
 	// for somebody who went and got an application id for it.
 	if id != "" {
-		go discord.Follow(context.Background(), id, watching, func(text string) {
-			fmt.Println(text)
-		})
+		go discord.Follow(context.Background(), id, watching, hushed.Hidden,
+			func(text string) {
+				fmt.Println(text)
+			})
 	}
 
 	log.Fatal(http.Serve(ear, web.Near(server.Routes())))
