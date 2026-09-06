@@ -25,6 +25,7 @@ var pageSource string
 var page = template.Must(template.New("page").Funcs(template.FuncMap{
 	"hours": hours,
 	"times": times,
+	"clock": clock,
 }).Parse(pageSource))
 
 func hours(seconds int) string {
@@ -59,6 +60,7 @@ func (s *Server) Routes() *http.ServeMux {
 	mux.HandleFunc("POST /api/seen", s.seen)
 	mux.HandleFunc("POST /api/now", s.playing)
 	mux.HandleFunc("POST /api/gone", s.gone)
+	mux.HandleFunc("GET /api/now", s.showing)
 	mux.HandleFunc("GET /api/plays", s.plays)
 	mux.HandleFunc("GET /api/services", s.services)
 	mux.HandleFunc("GET /api/week", s.week)
@@ -239,12 +241,63 @@ func seconds(said float64) time.Duration {
 	return time.Duration(said * float64(time.Second))
 }
 
-// A Now is the line at the top: what is playing this second, if anything.
+// A Now is the line at the top of the page, and the whole of what the popup in
+// the browser has to go on.
 type Now struct {
-	Playing bool
-	Service string
-	Title   string
-	Paused  bool
+	Playing bool   `json:"playing"`
+	Service string `json:"service,omitempty"`
+	ID      string `json:"id,omitempty"`
+	Title   string `json:"title,omitempty"`
+	By      string `json:"by,omitempty"`
+	Paused  bool   `json:"paused,omitempty"`
+
+	// Seconds in and seconds long, so the line can say where it stands. Whole
+	// is zero for a stream, which has nowhere to stand in.
+	Gone  int `json:"gone,omitempty"`
+	Whole int `json:"whole,omitempty"`
+}
+
+func (s *Server) showing(w http.ResponseWriter, r *http.Request) {
+	answer(w, s.onNow())
+}
+
+// Shows is how much of the list the page draws. A Takeout import is tens of
+// thousands of rows, and the page redraws itself every ten seconds: all of it
+// is a page nobody scrolls and a file read for nothing.
+const Shows = 200
+
+// A Day breaks the list up so that a date is said once instead of on every row.
+type Day struct {
+	Date    string
+	Seconds int
+	Plays   []play.Play
+}
+
+func byDay(plays []play.Play) []Day {
+	var days []Day
+
+	for _, one := range plays {
+		date := one.At.Format("Monday, 2 January")
+
+		if len(days) == 0 || days[len(days)-1].Date != date {
+			days = append(days, Day{Date: date})
+		}
+
+		days[len(days)-1].Plays = append(days[len(days)-1].Plays, one)
+		days[len(days)-1].Seconds += one.Seconds
+	}
+
+	return days
+}
+
+// Minutes and seconds, and hours only when there are any: 4:07 rather than
+// 0:04:07.
+func clock(seconds int) string {
+	if seconds >= 3600 {
+		return fmt.Sprintf("%d:%02d:%02d", seconds/3600, (seconds%3600)/60, seconds%60)
+	}
+
+	return fmt.Sprintf("%d:%02d", seconds/60, seconds%60)
 }
 
 func (s *Server) onNow() Now {
@@ -258,7 +311,28 @@ func (s *Server) onNow() Now {
 		title = live.Play.ID
 	}
 
-	return Now{Playing: true, Service: live.Play.Service, Title: title, Paused: live.Paused}
+	on := Now{
+		Playing: true,
+		Service: live.Play.Service,
+		ID:      live.Play.ID,
+		Title:   title,
+		By:      live.By,
+		Paused:  live.Paused,
+	}
+
+	// A paused thing stands where the page left it. A running one is wherever
+	// the clock has carried it since it started.
+	if live.Paused {
+		on.Gone = int(live.Position.Seconds())
+	} else {
+		on.Gone = int(time.Since(live.Started).Seconds())
+	}
+
+	if !live.Ends.IsZero() {
+		on.Whole = int(live.Ends.Sub(live.Started).Seconds())
+	}
+
+	return on
 }
 
 func (s *Server) plays(w http.ResponseWriter, r *http.Request) {
@@ -303,11 +377,20 @@ func (s *Server) show(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("content-type", "text/html; charset=utf-8")
 
+	week := sum.Week(plays, time.Now())
+	more := 0
+
+	if len(plays) > Shows {
+		more = len(plays) - Shows
+		plays = plays[:Shows]
+	}
+
 	_ = page.Execute(w, struct {
-		Now   Now
-		Plays []play.Play
-		Week  sum.Total
-	}{s.onNow(), plays, sum.Week(plays, time.Now())})
+		Now  Now
+		Days []Day
+		Week sum.Total
+		More int
+	}{s.onNow(), byDay(plays), week, more})
 }
 
 func answer(w http.ResponseWriter, body any) {

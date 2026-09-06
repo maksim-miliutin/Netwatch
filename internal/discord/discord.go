@@ -13,6 +13,7 @@ import (
 	"io"
 	"os"
 	"sync"
+	"time"
 )
 
 const (
@@ -23,6 +24,12 @@ const (
 
 // A length past this is a socket belonging to something other than Discord.
 const biggest = 64 << 10
+
+// How long an answer is waited for. Discord answers every command, and one
+// that does not would otherwise be waited on forever: the loop stops, the card
+// freezes where it stands, and nothing ever reconnects. A named pipe on
+// Windows takes no deadline, so closing it is what lets the read go.
+const Patience = 5 * time.Second
 
 // The word above the card. Music that says "watching" is noticed at once.
 const (
@@ -60,8 +67,9 @@ type Button struct {
 }
 
 type Presence struct {
-	id   string
-	pipe io.ReadWriteCloser
+	id       string
+	pipe     io.ReadWriteCloser
+	patience time.Duration
 
 	// One command at a time: every one is answered, and two in flight would
 	// each read the other's answer.
@@ -79,7 +87,7 @@ func Open(id string) (*Presence, error) {
 
 // Apart from Open because a test can be handed both ends of a pipe.
 func greet(pipe io.ReadWriteCloser, id string) (*Presence, error) {
-	p := &Presence{id: id, pipe: pipe}
+	p := &Presence{id: id, pipe: pipe, patience: Patience}
 
 	if err := p.write(hello, map[string]any{"v": 1, "client_id": id}); err != nil {
 		pipe.Close()
@@ -88,7 +96,7 @@ func greet(pipe io.ReadWriteCloser, id string) (*Presence, error) {
 	}
 
 	// The only place a wrong id shows itself, and then only once.
-	opcode, body, err := p.read()
+	opcode, body, err := p.hear()
 	if err != nil {
 		pipe.Close()
 
@@ -124,7 +132,7 @@ func (p *Presence) ask(command string, args any) error {
 	}
 
 	// Left on the socket the answer fills the pipe, and the next write blocks.
-	opcode, body, err := p.read()
+	opcode, body, err := p.hear()
 	if err != nil {
 		return err
 	}
@@ -134,6 +142,35 @@ func (p *Presence) ask(command string, args any) error {
 	}
 
 	return complaint(body)
+}
+
+// hear is read with a clock on it. The read itself cannot be interrupted, so
+// the pipe is closed instead, and that is what brings it back.
+func (p *Presence) hear() (uint32, []byte, error) {
+	type said struct {
+		opcode uint32
+		body   []byte
+		err    error
+	}
+
+	// Room for one, so that a read coming back late has somewhere to put its
+	// answer and can finish instead of holding a goroutine forever.
+	heard := make(chan said, 1)
+
+	go func() {
+		opcode, body, err := p.read()
+		heard <- said{opcode, body, err}
+	}()
+
+	select {
+	case got := <-heard:
+		return got.opcode, got.body, got.err
+
+	case <-time.After(p.patience):
+		p.pipe.Close()
+
+		return 0, nil, errors.New("discord took the frame and said nothing")
+	}
 }
 
 func (p *Presence) write(opcode uint32, body any) error {

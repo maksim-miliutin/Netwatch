@@ -4,13 +4,65 @@
 <meta charset="utf-8">
 <meta http-equiv="refresh" content="10">
 <title>netwatch</title>
+<style>
+    body {
+        max-width: 44rem;
+        margin: 3rem auto;
+        padding: 0 1.5rem;
+        font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        color: #1a1f24;
+    }
+
+    h1 { font-size: 1.5rem; margin: 0 0 0.2rem; }
+    h2 { font-size: 1rem; margin: 2.5rem 0 0.6rem; }
+
+    p { margin: 0.4rem 0; }
+    b, td, .times { font-variant-numeric: tabular-nums; }
+
+    .lead, .quiet { color: #6b7178; font-size: 0.9rem; }
+
+    .now { margin: 2rem 0 2.6rem; }
+    .now .label { color: #6b7178; font-size: 0.78rem; margin: 0 0 0.4rem; }
+    .now .what { font-size: 1.3rem; line-height: 1.3; margin: 0; }
+    .now .who { color: #6b7178; margin: 0.15rem 0 0.9rem; font-size: 0.9rem; }
+
+    .bar { height: 4px; background: #e4e2dd; }
+    .bar i { display: block; height: 100%; width: 0; background: #1a1f24; }
+    .times { display: flex; justify-content: space-between; margin: 0.4rem 0 0;
+             color: #6b7178; font-size: 0.8rem; }
+
+    .day { display: flex; justify-content: space-between; align-items: baseline;
+           margin: 1.8rem 0 0.2rem; font-size: 0.85rem; color: #6b7178; }
+
+    ul { padding-left: 1.1rem; margin: 0.5rem 0; }
+
+    table { border-collapse: collapse; width: 100%; }
+    td { padding: 0.45rem 1rem 0.45rem 0; vertical-align: baseline; }
+    td:first-child { color: #6b7178; width: 7rem; }
+    td:last-child { color: #6b7178; white-space: nowrap; text-align: right;
+                    padding-right: 0; }
+
+    a { color: inherit; }
+</style>
 </head>
 <body>
     <h1>netwatch</h1>
-    <p>What was watched and listened to. On this machine only.</p>
+    <p class="lead">What was watched and listened to. On this machine only.</p>
 
     {{if .Now.Playing}}
-    <p>Now: <b>{{.Now.Title}}</b> — {{.Now.Service}}{{if .Now.Paused}}, paused{{end}}</p>
+    <section class="now" data-gone="{{.Now.Gone}}" data-whole="{{.Now.Whole}}"
+             data-paused="{{.Now.Paused}}">
+        <p class="label">Now</p>
+        <p class="what">{{.Now.Title}}</p>
+        <p class="who">{{if .Now.By}}{{.Now.By}} · {{end}}{{.Now.Service}}{{if
+        .Now.Paused}} · paused{{end}}</p>
+
+        {{if .Now.Whole}}
+        <div class="bar"><i></i></div>
+        <p class="times"><span class="gone">{{clock .Now.Gone}}</span>
+        <span>{{clock .Now.Whole}}</span></p>
+        {{end}}
+    </section>
     {{end}}
 
     {{with .Week}}
@@ -23,22 +75,57 @@
         {{end}}
     </ul>
 
-    {{if .Open}}<p>{{.Open}} still uncounted: a play is closed by the next one.</p>{{end}}
+    {{if .Open}}<p class="quiet">{{.Open}} still uncounted: a play is closed by the next one.</p>{{end}}
     {{end}}
 
     <h2>Plays</h2>
+
+    {{range .Days}}
+    <p class="day"><span>{{.Date}}</span>
+    {{if .Seconds}}<span>{{hours .Seconds}}</span>{{end}}</p>
 
     <table>
         {{range .Plays}}
         <tr>
             <td>{{.Service}}</td>
             <td><a href="{{.URL}}">{{if .Title}}{{.Title}}{{else}}{{.ID}}{{end}}</a></td>
-            <td>{{if .Seconds}}{{hours .Seconds}}{{end}}</td>
-            <td>{{.At.Format "02.01 15:04"}}</td>
+            <td>{{if .Seconds}}{{hours .Seconds}}{{else if and $.Now.Playing
+                (eq .Service $.Now.Service) (eq .ID $.Now.ID)}}<span
+                class="quiet">playing</span>{{end}}</td>
+            <td>{{.At.Format "15:04"}}</td>
         </tr>
-        {{else}}
-        <tr><td>Nothing yet. Install the extension and open a video.</td></tr>
         {{end}}
     </table>
+    {{else}}
+    <p class="quiet">Nothing yet. Install the extension and open a video.</p>
+    {{end}}
+
+    {{if .More}}<p class="quiet">{{.More}} older in the file.</p>{{end}}
+<script>
+// The bar moves on its own between reloads. Everything it needs is already on
+// the page, so there is nothing to ask anybody for.
+const now = document.querySelector('.now');
+const fill = document.querySelector('.bar i');
+
+if (fill && now.dataset.paused !== 'true')
+{
+    const whole = Number(now.dataset.whole);
+    const began = Date.now() - Number(now.dataset.gone) * 1000;
+
+    const clock = (seconds) => Math.floor(seconds / 60)
+        + ':' + String(Math.floor(seconds % 60)).padStart(2, '0');
+
+    const draw = () =>
+    {
+        const gone = Math.min(whole, (Date.now() - began) / 1000);
+
+        fill.style.width = (gone / whole) * 100 + '%';
+        document.querySelector('.gone').textContent = clock(gone);
+    };
+
+    draw();
+    setInterval(draw, 1000);
+}
+</script>
 </body>
 </html>

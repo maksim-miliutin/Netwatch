@@ -1,13 +1,16 @@
 package web
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"netwatch/internal/now"
+	"netwatch/internal/play"
 	"netwatch/internal/store"
 )
 
@@ -160,13 +163,13 @@ func TestKeepsWhatAPlayingPageSaysAboutItself(t *testing.T) {
 		t.Fatalf("got %d %s", answer.Code, answer.Body)
 	}
 
-	if page := shown(t, handler); !strings.Contains(page, "Now: <b>Нечто</b>") {
+	if page := shown(t, handler); !strings.Contains(page, `class="what">Нечто`) {
 		t.Errorf("the page says nothing about it: %s", page)
 	}
 }
 
 func TestSaysNothingIsOnUntilSomethingIs(t *testing.T) {
-	if page := shown(t, serving(t)); strings.Contains(page, "Now:") {
+	if page := shown(t, serving(t)); strings.Contains(page, `class="now"`) {
 		t.Errorf("something plays on a machine nobody touched: %s", page)
 	}
 }
@@ -177,7 +180,7 @@ func TestStopsWhenTheTabIsGone(t *testing.T) {
 	sent(t, handler, "/api/now", `{"url":"https://youtu.be/abc","title":"Нечто"}`)
 	sent(t, handler, "/api/gone", `{}`)
 
-	if page := shown(t, handler); strings.Contains(page, "Now:") {
+	if page := shown(t, handler); strings.Contains(page, `class="now"`) {
 		t.Error("still playing after the tab went")
 	}
 }
@@ -189,7 +192,7 @@ func TestAPageThatIsNotAPlayEndsWhatWasPlaying(t *testing.T) {
 	sent(t, handler, "/api/now", `{"url":"https://youtu.be/abc","title":"Нечто"}`)
 	sent(t, handler, "/api/now", `{"url":"https://www.youtube.com/results?q=нечто","title":"Поиск"}`)
 
-	if page := shown(t, handler); strings.Contains(page, "Now:") {
+	if page := shown(t, handler); strings.Contains(page, `class="now"`) {
 		t.Error("still playing after the tab went to a search")
 	}
 }
@@ -237,6 +240,66 @@ func TestRefusesAPostThatDidNotMeanToComeHere(t *testing.T) {
 
 		if answer.Code != wanted {
 			t.Errorf("%q: got %d, wanted %d", kind, answer.Code, wanted)
+		}
+	}
+}
+
+// A Takeout import is tens of thousands of rows. Drawing all of them is a page
+// nobody scrolls, redrawn every ten seconds.
+func TestDrawsOnlySoMuchOfTheList(t *testing.T) {
+	kept, err := store.Open(filepath.Join(t.TempDir(), "plays.jsonl"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	at := time.Now().UTC()
+
+	for i := 0; i < Shows+5; i++ {
+		one := play.Play{
+			Service: "youtube",
+			ID:      fmt.Sprintf("v%d", i),
+			Title:   fmt.Sprintf("Number %d", i),
+			At:      at.Add(-time.Duration(i) * time.Minute),
+		}
+
+		if err := kept.Add(one); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	handler := (&Server{Store: kept, Watching: now.New()}).Routes()
+	page := shown(t, handler)
+
+	if strings.Count(page, "<tr>") != Shows {
+		t.Errorf("drew %d rows, wanted %d", strings.Count(page, "<tr>"), Shows)
+	}
+
+	if !strings.Contains(page, "5 older in the file") {
+		t.Error("said nothing about the rest")
+	}
+}
+
+// The popup in the browser has nothing else to go on: it cannot read the page,
+// and it has to tell "not running" from "running, nothing playing".
+func TestTellsThePopupWhatIsPlaying(t *testing.T) {
+	handler := serving(t)
+
+	empty := httptest.NewRecorder()
+	handler.ServeHTTP(empty, httptest.NewRequest("GET", "/api/now", nil))
+
+	if !strings.Contains(empty.Body.String(), `"playing":false`) {
+		t.Errorf("got %s on an untouched machine", empty.Body)
+	}
+
+	sent(t, handler, "/api/now",
+		`{"url":"https://youtu.be/abc","title":"Нечто","by":"Кто-то","position":30,"length":600}`)
+
+	on := httptest.NewRecorder()
+	handler.ServeHTTP(on, httptest.NewRequest("GET", "/api/now", nil))
+
+	for _, want := range []string{`"playing":true`, `"title":"Нечто"`, `"by":"Кто-то"`, `"whole":600`} {
+		if !strings.Contains(on.Body.String(), want) {
+			t.Errorf("got %s, without %s", on.Body, want)
 		}
 	}
 }

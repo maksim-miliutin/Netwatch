@@ -6,6 +6,7 @@ import (
 	"net"
 	"strings"
 	"testing"
+	"time"
 )
 
 type said struct {
@@ -144,4 +145,43 @@ func TestReadsAComplaintOutOfAnOrdinaryAnswer(t *testing.T) {
 	}
 
 	<-heard
+}
+
+// A Discord that takes the frame and says nothing. Without a clock on the
+// read, this is where the loop would stop for good.
+func deaf() io.ReadWriteCloser {
+	ours, theirs := net.Pipe()
+
+	go func() {
+		far := &Presence{pipe: theirs}
+
+		for {
+			if _, _, err := far.read(); err != nil {
+				return
+			}
+		}
+	}()
+
+	return ours
+}
+
+func TestGivesUpOnAClientThatSaysNothing(t *testing.T) {
+	pipe := deaf()
+
+	done := make(chan error, 1)
+
+	go func() {
+		presence := &Presence{id: "424242", pipe: pipe, patience: 50 * time.Millisecond}
+		done <- presence.Show(&Activity{Type: watching, Details: "Нечто"})
+	}()
+
+	select {
+	case err := <-done:
+		if err == nil {
+			t.Error("waited on a silent client and called it a success")
+		}
+
+	case <-time.After(2 * time.Second):
+		t.Fatal("still waiting: a silent client stops the loop for good")
+	}
 }

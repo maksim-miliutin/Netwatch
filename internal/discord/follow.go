@@ -81,8 +81,9 @@ func (f *follower) connect(at time.Time) {
 			return
 		}
 
-		// A wrong id fails exactly like this, forever, and says so nowhere.
-		f.mention(err.Error())
+		// A wrong id fails exactly like this, forever, and the number of a
+		// server or a person looks just like the number of an application.
+		f.mention(err.Error() + ". Application ID from discord.com/developers/applications")
 
 		return
 	}

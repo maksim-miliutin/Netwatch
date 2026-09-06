@@ -110,3 +110,25 @@ func TestSaysAThingOnlyOnce(t *testing.T) {
 		t.Errorf("said %v", heard)
 	}
 }
+
+// The point of a clock on the read: the loop lets go and tries again later,
+// instead of holding a client that stopped answering until the program quits.
+func TestLetsGoOfAClientThatStoppedAnswering(t *testing.T) {
+	f := &follower{
+		watching: now.New(),
+		to:       &Presence{pipe: deaf(), patience: 50 * time.Millisecond},
+	}
+
+	at := time.Now()
+	watched(f, "a", at, 0)
+
+	f.update(at)
+
+	if f.to != nil {
+		t.Error("still holding a client that says nothing")
+	}
+
+	if !f.again.After(at) {
+		t.Error("did not put the next try off")
+	}
+}

@@ -22,6 +22,14 @@ type Store struct {
 	// idle, and a handle held for hours outlives the disk it points at.
 	file string
 
+	// What was read last, and what the file looked like then. A year of plays
+	// parsed again for every page — and the page redraws itself every ten
+	// seconds — is work nobody asked for. Nothing else writes here, and
+	// noticing a hand edit costs one stat.
+	plays []play.Play
+	when  time.Time
+	size  int64
+
 	mu sync.Mutex
 }
 
@@ -70,9 +78,14 @@ func (s *Store) Add(one play.Play) error {
 	}
 	defer file.Close()
 
-	_, err = file.Write(append(line, '\n'))
+	if _, err := file.Write(append(line, '\n')); err != nil {
+		return err
+	}
 
-	return err
+	// What is kept was just brought up to date by close, if it ran at all.
+	s.kept(append(s.plays, one))
+
+	return nil
 }
 
 // Merge writes down plays from somewhere other than a browser tab, leaving
@@ -126,11 +139,16 @@ func (s *Store) All() ([]play.Play, error) {
 		return nil, err
 	}
 
-	sort.Slice(plays, func(a, b int) bool {
-		return plays[a].At.After(plays[b].At)
+	// Sorted on a copy. In place it would turn what is kept back to front, and
+	// the next Add would take the oldest play for the newest.
+	newest := make([]play.Play, len(plays))
+	copy(newest, plays)
+
+	sort.Slice(newest, func(a, b int) bool {
+		return newest[a].At.After(newest[b].At)
 	})
 
-	return plays, nil
+	return newest, nil
 }
 
 // Stop closes what is open because something said it ended rather than because
@@ -168,13 +186,18 @@ func (s *Store) close(last play.Play, at time.Time) error {
 		return err
 	}
 
-	for i := range plays {
-		if plays[i].At.Equal(last.At) && plays[i].ID == last.ID {
-			plays[i].Seconds = int(lasted.Seconds())
+	// On a copy: a rewrite that fails would otherwise leave what is kept
+	// saying closed while the file still says open.
+	closed := make([]play.Play, len(plays))
+	copy(closed, plays)
+
+	for i := range closed {
+		if closed[i].At.Equal(last.At) && closed[i].ID == last.ID {
+			closed[i].Seconds = int(lasted.Seconds())
 		}
 	}
 
-	return s.rewrite(plays)
+	return s.rewrite(closed)
 }
 
 func (s *Store) rewrite(plays []play.Play) error {
@@ -213,15 +236,30 @@ func (s *Store) rewrite(plays []play.Play) error {
 		return err
 	}
 
-	return os.Rename(temporary, s.file)
+	if err := os.Rename(temporary, s.file); err != nil {
+		return err
+	}
+
+	s.kept(plays)
+
+	return nil
 }
 
 func (s *Store) read() ([]play.Play, error) {
-	file, err := os.Open(s.file)
+	stat, err := os.Stat(s.file)
 	if os.IsNotExist(err) {
 		return nil, nil
 	}
 
+	if err != nil {
+		return nil, err
+	}
+
+	if s.plays != nil && stat.ModTime().Equal(s.when) && stat.Size() == s.size {
+		return s.plays, nil
+	}
+
+	file, err := os.Open(s.file)
 	if err != nil {
 		return nil, err
 	}
@@ -241,5 +279,24 @@ func (s *Store) read() ([]play.Play, error) {
 		plays = append(plays, one)
 	}
 
-	return plays, lines.Err()
+	if err := lines.Err(); err != nil {
+		return nil, err
+	}
+
+	s.plays, s.when, s.size = plays, stat.ModTime(), stat.Size()
+
+	return plays, nil
+}
+
+// kept remembers what was just written, so that the next read does not go back
+// to the disk for a file this only just finished with.
+func (s *Store) kept(plays []play.Play) {
+	stat, err := os.Stat(s.file)
+	if err != nil {
+		s.plays = nil
+
+		return
+	}
+
+	s.plays, s.when, s.size = plays, stat.ModTime(), stat.Size()
 }

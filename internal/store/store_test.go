@@ -1,6 +1,7 @@
 package store
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
@@ -270,5 +271,93 @@ func TestWritesSomethingAgainOnceItWasClosed(t *testing.T) {
 	got, _ := store.All()
 	if len(got) != 2 {
 		t.Errorf("wrote %d, wanted two", len(got))
+	}
+}
+
+// The same tab reports itself every ten seconds, and the page redraws itself
+// just as often. Neither should send the whole file through a parser again.
+func TestDoesNotReadTheFileTwiceForNothing(t *testing.T) {
+	store := fresh(t)
+	now := time.Now().UTC()
+
+	if err := store.Add(one("a", now)); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := store.All(); err != nil {
+		t.Fatal(err)
+	}
+
+	// The file is filled with rubbish of exactly the same length and put back
+	// to the same moment. Nothing a stat can see has changed, so a read that
+	// went to the disk would come back with nothing.
+	was, err := os.Stat(store.file)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rubbish := make([]byte, was.Size())
+	for i := range rubbish {
+		rubbish[i] = 'x'
+	}
+
+	if err := os.WriteFile(store.file, rubbish, 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := os.Chtimes(store.file, was.ModTime(), was.ModTime()); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := store.All()
+	if err != nil || len(got) != 1 {
+		t.Fatalf("got %d %v, wanted what was kept", len(got), err)
+	}
+}
+
+// All hands out a copy. Sorted in place, what is kept would end up back to
+// front, and the next Add would take the oldest play for the newest.
+func TestSortingTheListLeavesTheOrderAlone(t *testing.T) {
+	store := fresh(t)
+	now := time.Now().UTC()
+
+	_ = store.Add(one("a", now))
+	_ = store.Add(one("b", now.Add(time.Minute)))
+
+	if _, err := store.All(); err != nil {
+		t.Fatal(err)
+	}
+
+	// b is the newest, so a play of b again is the same watch and writes
+	// nothing. If the order had turned over, a would be taken for the newest.
+	_ = store.Add(one("b", now.Add(2*time.Minute)))
+
+	got, _ := store.All()
+	if len(got) != 2 {
+		t.Errorf("wrote %d, wanted two", len(got))
+	}
+}
+
+// A file edited by hand is noticed: the size and the moment both change.
+func TestNoticesTheFileChangingUnderIt(t *testing.T) {
+	store := fresh(t)
+	now := time.Now().UTC()
+
+	_ = store.Add(one("a", now))
+	_, _ = store.All()
+
+	line, _ := json.Marshal(play.Play{Service: "rutube", ID: "b", At: now.Add(time.Minute)})
+
+	file, err := os.OpenFile(store.file, os.O_APPEND|os.O_WRONLY, 0o600)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, _ = file.Write(append(line, '\n'))
+	file.Close()
+
+	got, _ := store.All()
+	if len(got) != 2 {
+		t.Errorf("saw %d, wanted the hand written one too", len(got))
 	}
 }

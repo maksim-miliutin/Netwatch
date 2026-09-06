@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+    body {
+        width: 250px;
+        margin: 0;
+        padding: 14px;
+        font: 13px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        color: #1a1f24;
+    }
+
+    p { margin: 0; }
+
+    .what { font-weight: 600; }
+    .who, .quiet { color: #6b7178; }
+
+    .bar { height: 3px; background: #e4e2dd; margin: 10px 0 4px; }
+    .bar i { display: block; height: 100%; width: 0; background: #1a1f24; }
+
+    .times { display: flex; justify-content: space-between; color: #6b7178; font-size: 11px; }
+
+    a { color: #6b7178; display: inline-block; margin-top: 12px; font-size: 12px; }
+</style>
+</head>
+<body>
+    <div id="state"></div>
+    <a href="http://127.0.0.1:7373" target="_blank">Open the list</a>
+    <script src="dist/popup.js"></script>
+</body>
+</html>
