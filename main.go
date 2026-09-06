@@ -11,6 +11,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -58,6 +59,13 @@ func main() {
 	server := &web.Server{Store: kept, Watching: watching}
 	address := fmt.Sprintf("127.0.0.1:%d", *port)
 
+	// The port is taken before anything is said about it. Saying it first and
+	// failing after leaves two cheerful lines above the reason nothing works.
+	ear, err := net.Listen("tcp", address)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	fmt.Printf("netwatch is running. Open http://%s in a browser.\n", address)
 	fmt.Printf("The list is kept in %s and goes nowhere else.\n", where)
 
@@ -69,7 +77,7 @@ func main() {
 		})
 	}
 
-	log.Fatal(http.ListenAndServe(address, web.Near(server.Routes())))
+	log.Fatal(http.Serve(ear, web.Near(server.Routes())))
 }
 
 // Reads a history handed over by a service and stops. Importing and serving in
