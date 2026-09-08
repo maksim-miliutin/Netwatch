@@ -4,12 +4,14 @@ package web
 
 import (
 	_ "embed"
+	"encoding/csv"
 	"encoding/json"
 	"fmt"
 	"html/template"
 	"net"
 	"net/http"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -75,6 +77,7 @@ func (s *Server) Routes() *http.ServeMux {
 	mux.HandleFunc("POST /api/quiet", s.hiding)
 	mux.HandleFunc("POST /api/quit", s.quit)
 	mux.HandleFunc("POST /api/forget", s.forget)
+	mux.HandleFunc("GET /plays.csv", s.sheet)
 	mux.HandleFunc("GET /api/plays", s.plays)
 	mux.HandleFunc("GET /api/services", s.services)
 	mux.HandleFunc("GET /api/week", s.week)
@@ -297,6 +300,37 @@ func (s *Server) told() string {
 	}
 
 	return s.Says()
+}
+
+// The list, in the one shape every spreadsheet on earth will open. The file
+// itself is a line of JSON per play, which is honest and unreadable by
+// anything somebody already has.
+func (s *Server) sheet(w http.ResponseWriter, r *http.Request) {
+	plays, err := s.Store.All()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+
+		return
+	}
+
+	w.Header().Set("content-type", "text/csv; charset=utf-8")
+	w.Header().Set("content-disposition", `attachment; filename="plays.csv"`)
+
+	sheet := csv.NewWriter(w)
+	defer sheet.Flush()
+
+	_ = sheet.Write([]string{"at", "service", "id", "seconds", "title", "url"})
+
+	for _, one := range plays {
+		_ = sheet.Write([]string{
+			one.At.Format(time.RFC3339),
+			one.Service,
+			one.ID,
+			strconv.Itoa(one.Seconds),
+			one.Title,
+			one.URL,
+		})
+	}
 }
 
 // A moment tells one watch of a video from the next, so it goes over the wire

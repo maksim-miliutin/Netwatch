@@ -536,3 +536,33 @@ func TestFindsAPlayByName(t *testing.T) {
 		t.Error("did not find it by service, or minded the capitals")
 	}
 }
+
+// A line of JSON per play is honest and unreadable by anything somebody
+// already has on their machine.
+func TestHandsTheListOverAsASpreadsheet(t *testing.T) {
+	handler := serving(t)
+
+	sent(t, handler, "/api/now", `{"url":"https://youtu.be/abc","title":"Нечто, с запятой"}`)
+
+	sheet := httptest.NewRecorder()
+	handler.ServeHTTP(sheet, httptest.NewRequest("GET", "/plays.csv", nil))
+
+	if sheet.Code != http.StatusOK {
+		t.Fatalf("got %d", sheet.Code)
+	}
+
+	if kind := sheet.Header().Get("content-type"); !strings.HasPrefix(kind, "text/csv") {
+		t.Errorf("came back as %q", kind)
+	}
+
+	body := sheet.Body.String()
+
+	if !strings.Contains(body, "at,service,id,seconds,title,url") {
+		t.Errorf("no heading: %s", body)
+	}
+
+	// A comma in a title is what breaks a spreadsheet written by hand.
+	if !strings.Contains(body, `"Нечто, с запятой"`) {
+		t.Errorf("the comma went through unquoted: %s", body)
+	}
+}
