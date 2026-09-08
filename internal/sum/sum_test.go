@@ -80,3 +80,24 @@ func TestAnswersNothingForNothing(t *testing.T) {
 		t.Errorf("got %+v", total)
 	}
 }
+
+// A month is a thing on a wall, not thirty turns of the earth.
+func TestAddsUpAMonth(t *testing.T) {
+	now := time.Date(2026, time.September, 6, 12, 0, 0, 0, time.UTC)
+
+	plays := []play.Play{
+		{Service: "youtube", Seconds: 600, At: now.AddDate(0, 0, -20)},
+		{Service: "twitch", Seconds: 300, At: now.AddDate(0, 0, -3)},
+		{Service: "rutube", Seconds: 900, At: now.AddDate(0, -2, 0)},
+	}
+
+	month := Month(plays, now)
+	if month.Plays != 2 || month.Seconds != 900 {
+		t.Errorf("got %d plays and %d seconds", month.Plays, month.Seconds)
+	}
+
+	// The same list over a week leaves out what a month keeps.
+	if week := Week(plays, now); week.Plays != 1 {
+		t.Errorf("the week took %d", week.Plays)
+	}
+}

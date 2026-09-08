@@ -71,3 +71,9 @@ func Over(plays []play.Play, since time.Time) Total {
 func Week(plays []play.Play, now time.Time) Total {
 	return Over(plays, now.AddDate(0, 0, -7))
 }
+
+// Month is the other one they mean, and a calendar month rather than thirty
+// days: a month is a thing on a wall, not a number of turns of the earth.
+func Month(plays []play.Play, now time.Time) Total {
+	return Over(plays, now.AddDate(0, -1, 0))
+}

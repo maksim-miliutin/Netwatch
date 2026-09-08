@@ -54,6 +54,14 @@ type Server struct {
 	Store    *store.Store
 	Watching *now.Watch
 	Quiet    *quiet.List
+
+	// The last thing the card had to say, for the popup. Nil when nobody is
+	// telling: the card is off, or this is a test.
+	Says func() string
+
+	// What to do when the page asks to stop. Nil in a test, which should not
+	// be able to end the run that is testing it.
+	Quitting func()
 }
 
 func (s *Server) Routes() *http.ServeMux {
@@ -65,6 +73,8 @@ func (s *Server) Routes() *http.ServeMux {
 	mux.HandleFunc("POST /api/gone", s.gone)
 	mux.HandleFunc("GET /api/now", s.showing)
 	mux.HandleFunc("POST /api/quiet", s.hiding)
+	mux.HandleFunc("POST /api/quit", s.quit)
+	mux.HandleFunc("POST /api/forget", s.forget)
 	mux.HandleFunc("GET /api/plays", s.plays)
 	mux.HandleFunc("GET /api/services", s.services)
 	mux.HandleFunc("GET /api/week", s.week)
@@ -273,10 +283,63 @@ type Now struct {
 	// is zero for a stream, which has nowhere to stand in.
 	Gone  int `json:"gone,omitempty"`
 	Whole int `json:"whole,omitempty"`
+
+	Discord string `json:"discord,omitempty"`
 }
 
 func (s *Server) showing(w http.ResponseWriter, r *http.Request) {
 	answer(w, s.onNow())
+}
+
+func (s *Server) told() string {
+	if s.Says == nil {
+		return ""
+	}
+
+	return s.Says()
+}
+
+// A moment tells one watch of a video from the next, so it goes over the wire
+// with the rest: without it, crossing out today would cross out last month too.
+func (s *Server) forget(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "unreadable", http.StatusBadRequest)
+
+		return
+	}
+
+	at, err := time.Parse(time.RFC3339Nano, r.FormValue("at"))
+	if err != nil {
+		http.Error(w, "unreadable", http.StatusBadRequest)
+
+		return
+	}
+
+	if err := s.Store.Forget(r.FormValue("service"), r.FormValue("id"), at); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+
+		return
+	}
+
+	http.Redirect(w, r, "/", http.StatusSeeOther)
+}
+
+// Started without a console there is no window to close and no Ctrl-C to
+// press, and Task Manager is a poor way to end an evening. Quitting is a
+// write, so it goes through the same door as the rest: off this page or not
+// at all.
+func (s *Server) quit(w http.ResponseWriter, r *http.Request) {
+	answer(w, map[string]bool{"quitting": true})
+
+	if s.Quitting == nil {
+		return
+	}
+
+	// After the answer is on the wire, or the page never hears it.
+	go func() {
+		time.Sleep(200 * time.Millisecond)
+		s.Quitting()
+	}()
 }
 
 // A Choice is one service and whether it goes on the card.
@@ -349,6 +412,23 @@ func (s *Server) hiding(w http.ResponseWriter, r *http.Request) {
 // is a page nobody scrolls and a file read for nothing.
 const Shows = 200
 
+// Both the name and the service: somebody looking for "twitch" means the
+// service, and somebody looking for a title means the title.
+func matching(plays []play.Play, find string) []play.Play {
+	find = strings.ToLower(find)
+
+	var found []play.Play
+
+	for _, one := range plays {
+		if strings.Contains(strings.ToLower(one.Title), find) ||
+			strings.Contains(strings.ToLower(one.Service), find) {
+			found = append(found, one)
+		}
+	}
+
+	return found
+}
+
 // A Day breaks the list up so that a date is said once instead of on every row.
 type Day struct {
 	Date    string
@@ -409,7 +489,7 @@ func clock(seconds int) string {
 func (s *Server) onNow() Now {
 	live, ok := s.Watching.Playing(time.Now())
 	if !ok {
-		return Now{}
+		return Now{Discord: s.told()}
 	}
 
 	title := live.Play.Title
@@ -419,6 +499,7 @@ func (s *Server) onNow() Now {
 
 	on := Now{
 		Playing: true,
+		Discord: s.told(),
 		Service: live.Play.Service,
 		ID:      live.Play.ID,
 		Title:   title,
@@ -483,7 +564,23 @@ func (s *Server) show(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("content-type", "text/html; charset=utf-8")
 
-	week := sum.Week(plays, time.Now())
+	// A month of watching is a few hundred lines, and a year is thousands. The
+	// only way back to a particular one is its name.
+	find := strings.TrimSpace(r.URL.Query().Get("find"))
+	if find != "" {
+		plays = matching(plays, find)
+	}
+
+	// Two spans, and the page names the one it is not showing so that finding
+	// the other takes a click rather than a guess.
+	span, other := "week", "month"
+	total := sum.Week(plays, time.Now())
+
+	if r.URL.Query().Get("span") == "month" {
+		span, other = "month", "week"
+		total = sum.Month(plays, time.Now())
+	}
+
 	more := 0
 
 	if len(plays) > Shows {
@@ -494,10 +591,14 @@ func (s *Server) show(w http.ResponseWriter, r *http.Request) {
 	_ = page.Execute(w, struct {
 		Now     Now
 		Days    []Day
-		Week    sum.Total
+		Total   sum.Total
+		Span    string
+		Other   string
 		More    int
+		Find    string
 		Choices []Choice
-	}{s.onNow(), byDay(plays, time.Now()), week, more, s.choices(plays)})
+	}{s.onNow(), byDay(plays, time.Now()), total, span, other, more, find,
+		s.choices(plays)})
 }
 
 func answer(w http.ResponseWriter, body any) {

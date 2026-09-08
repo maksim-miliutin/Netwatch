@@ -361,3 +361,55 @@ func TestNoticesTheFileChangingUnderIt(t *testing.T) {
 		t.Errorf("saw %d, wanted the hand written one too", len(got))
 	}
 }
+
+// A list somebody cannot cross a line out of is a list they stop keeping.
+func TestForgetsOnePlay(t *testing.T) {
+	store := fresh(t)
+	now := time.Now().UTC()
+
+	_ = store.Add(one("a", now))
+	_ = store.Add(one("b", now.Add(time.Minute)))
+
+	got, _ := store.All()
+	if err := store.Forget("youtube", "a", got[1].At); err != nil {
+		t.Fatal(err)
+	}
+
+	left, _ := store.All()
+	if len(left) != 1 || left[0].ID != "b" {
+		t.Errorf("left %+v", left)
+	}
+}
+
+// The same video watched twice is two lines, and crossing out one leaves the
+// other: the moment is what tells them apart.
+func TestForgetsOnlyTheOneAsked(t *testing.T) {
+	store := fresh(t)
+	now := time.Now().UTC()
+
+	_ = store.Add(one("a", now))
+	_ = store.Stop(now.Add(time.Minute))
+	_ = store.Add(one("a", now.Add(time.Hour)))
+
+	_ = store.Forget("youtube", "a", now)
+
+	left, _ := store.All()
+	if len(left) != 1 {
+		t.Errorf("left %d, wanted the second watch", len(left))
+	}
+}
+
+func TestForgettingWhatIsNotThereChangesNothing(t *testing.T) {
+	store := fresh(t)
+	now := time.Now().UTC()
+
+	_ = store.Add(one("a", now))
+
+	if err := store.Forget("youtube", "nothing", now); err != nil {
+		t.Fatal(err)
+	}
+
+	if left, _ := store.All(); len(left) != 1 {
+		t.Errorf("left %d", len(left))
+	}
+}

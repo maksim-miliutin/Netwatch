@@ -151,6 +151,34 @@ func (s *Store) All() ([]play.Play, error) {
 	return newest, nil
 }
 
+// Forget takes one play out of the file. A list somebody cannot cross a line
+// out of is a list they stop keeping.
+func (s *Store) Forget(service, id string, at time.Time) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	plays, err := s.read()
+	if err != nil {
+		return err
+	}
+
+	left := make([]play.Play, 0, len(plays))
+
+	for _, one := range plays {
+		if one.Service == service && one.ID == id && one.At.Equal(at) {
+			continue
+		}
+
+		left = append(left, one)
+	}
+
+	if len(left) == len(plays) {
+		return nil
+	}
+
+	return s.rewrite(left)
+}
+
 // Stop closes what is open because something said it ended rather than because
 // the next play arrived. A page that is left knows the moment it was left.
 func (s *Store) Stop(at time.Time) error {

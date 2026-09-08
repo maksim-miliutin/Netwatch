@@ -44,6 +44,18 @@
 
     a { color: inherit; }
 
+    .find { margin: 0 0 0.6rem; }
+    .find input { font: inherit; font-size: 0.9rem; width: 12rem;
+                  padding: 0.25rem 0.5rem; }
+    .find button { font: inherit; font-size: 0.85rem; padding: 0.25rem 0.8rem; }
+    .find a { color: #6b7178; font-size: 0.85rem; margin-left: 0.6rem; }
+
+    .cross { width: 1.5rem; }
+    .cross form { display: inline; }
+    .cross button { border: 0; background: none; color: #b6bcc2; cursor: pointer;
+                    font: inherit; padding: 0; }
+    .cross button:hover { color: #1a1f24; }
+
     .card { margin: 2.5rem 0 0; }
     .card label { display: inline-block; margin: 0 1rem 0.3rem 0; font-size: 0.9rem; }
     .card button { margin-top: 0.6rem; font: inherit; font-size: 0.85rem;
@@ -70,8 +82,8 @@
     </section>
     {{end}}
 
-    {{with .Week}}
-    <h2>This week</h2>
+    {{with .Total}}
+    <h2>This {{$.Span}}</h2>
     <p>{{times .Plays}}{{if .Seconds}}, {{hours .Seconds}}{{end}}</p>
 
     <ul>
@@ -81,9 +93,18 @@
     </ul>
 
     {{if .Open}}<p class="quiet">{{.Open}} still uncounted: a play is closed by the next one.</p>{{end}}
+
+    <p class="quiet"><a href="/?span={{$.Other}}">show the {{$.Other}}</a></p>
     {{end}}
 
     <h2>Plays</h2>
+
+    <form class="find" method="get" action="/">
+        <input type="search" name="find" value="{{.Find}}"
+               placeholder="find a name">
+        <button>Find</button>
+        {{if .Find}}<a href="/">all of it</a>{{end}}
+    </form>
 
     {{range .Days}}
     <p class="day"><span>{{.Date}}</span>
@@ -98,14 +119,28 @@
                 (eq .Service $.Now.Service) (eq .ID $.Now.ID)}}<span
                 class="quiet">playing</span>{{end}}</td>
             <td>{{.At.Format "15:04"}}</td>
+            <td class="cross">
+                <form method="post" action="/api/forget">
+                    <input type="hidden" name="service" value="{{.Service}}">
+                    <input type="hidden" name="id" value="{{.ID}}">
+                    <input type="hidden" name="at"
+                           value="{{.At.Format "2006-01-02T15:04:05.999999999Z07:00"}}">
+                    <button title="Forget this one">×</button>
+                </form>
+            </td>
         </tr>
         {{end}}
     </table>
     {{else}}
-    <p class="quiet">Nothing yet. Install the extension and open a video.</p>
+    <p class="quiet">{{if .Find}}Nothing by that name.{{else}}Nothing yet.
+    Install the extension and open a video.{{end}}</p>
     {{end}}
 
     {{if .More}}<p class="quiet">{{.More}} older in the file.</p>{{end}}
+
+    <form class="card" method="post" action="/api/quit">
+        <button>Quit netwatch</button>
+    </form>
 
     {{if .Choices}}
     <h2>On the card</h2>
