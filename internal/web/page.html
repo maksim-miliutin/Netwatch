@@ -2,7 +2,6 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="refresh" content="10">
 <title>netwatch</title>
 <style>
     body {
@@ -50,11 +49,27 @@
     .find button { font: inherit; font-size: 0.85rem; padding: 0.25rem 0.8rem; }
     .find a { color: #6b7178; font-size: 0.85rem; margin-left: 0.6rem; }
 
+    .head { display: flex; align-items: baseline; justify-content: space-between;
+            gap: 1rem; flex-wrap: wrap; }
+    .head h2 { margin-bottom: 0.2rem; }
+
     .cross { width: 1.5rem; }
     .cross form { display: inline; }
+
+    /* Two hundred crosses down the page is two hundred things to look past.
+       The one under the hand is the only one anybody wants. */
     .cross button { border: 0; background: none; color: #b6bcc2; cursor: pointer;
-                    font: inherit; padding: 0; }
+                    font: inherit; padding: 0; opacity: 0; }
+    tr:hover .cross button, .cross button:focus-visible { opacity: 1; }
     .cross button:hover { color: #1a1f24; }
+
+    .below { margin-top: 4rem; }
+    .below h2 { margin-top: 0; }
+
+    .stop { border: 0; background: none; color: #6b7178; font: inherit;
+            font-size: 0.85rem; padding: 0; margin-top: 2rem;
+            text-decoration: underline; cursor: pointer; }
+    .stop:hover { color: #1a1f24; }
 
     .card { margin: 2.5rem 0 0; }
     .card label { display: inline-block; margin: 0 1rem 0.3rem 0; font-size: 0.9rem; }
@@ -92,20 +107,26 @@
         {{end}}
     </ul>
 
-    {{if .Open}}<p class="quiet">{{.Open}} still uncounted: a play is closed by the next one.</p>{{end}}
+    {{if .Open}}
+    <p class="quiet">{{.Open}} still uncounted: a play is closed by the next one.</p>
+    {{end}}
 
     <p class="quiet"><a href="{{$.Next}}">show {{$.Named}}</a></p>
     {{end}}
 
-    <h2>Plays</h2>
+    <div class="head">
+        <h2>Plays</h2>
 
-    <form class="find" method="get" action="/">
-        <input type="search" name="find" value="{{.Find}}"
-               placeholder="find a name">
-        <input type="hidden" name="span" value="{{.Span}}">
-        <button>Find</button>
-        {{if .Find}}<a href="{{if .Span}}/?span={{.Span}}{{else}}/{{end}}">the lot</a>{{end}}
-    </form>
+        <form class="find" method="get" action="/">
+            <input type="search" name="find" value="{{.Find}}"
+                   placeholder="find a name">
+            <input type="hidden" name="span" value="{{.Span}}">
+            <button>Find</button>
+            {{if .Find}}
+            <a href="{{if .Span}}/?span={{.Span}}{{else}}/{{end}}">the lot</a>
+            {{end}}
+        </form>
+    </div>
 
     {{range .Days}}
     <p class="day"><span>{{.Date}}</span>
@@ -141,10 +162,7 @@
 
     <p class="quiet"><a href="/plays.csv">Take the whole list as a spreadsheet</a></p>
 
-    <form class="card" method="post" action="/api/quit">
-        <button>Quit netwatch</button>
-    </form>
-
+    <div class="below">
     {{if .Choices}}
     <h2>On the card</h2>
     <p class="quiet">Unticked services stay out of Discord. The list keeps them
@@ -162,7 +180,31 @@
         <div><button>Save</button></div>
     </form>
     {{end}}
+
+    <form method="post" action="/api/quit">
+        <button class="stop">Quit netwatch</button>
+    </form>
+    </div>
 <script>
+// The page used to reload itself every ten seconds, and took whatever was
+// half done with it: three services ticked and not yet saved, a name half
+// typed into the search. It still refreshes, but not once anybody has
+// started doing something.
+let touched = false;
+
+for (const event of ['input', 'change'])
+{
+    document.addEventListener(event, () => { touched = true; });
+}
+
+setInterval(() =>
+{
+    if (!touched)
+    {
+        location.reload();
+    }
+}, 10000);
+
 // The bar moves on its own between reloads. Everything it needs is already on
 // the page, so there is nothing to ask anybody for.
 const now = document.querySelector('.now');
