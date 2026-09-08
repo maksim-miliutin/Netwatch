@@ -1,6 +1,5 @@
 // Package discord tells the Discord client on this machine what is playing.
-// The web API cannot set an activity at all; only a program beside the client
-// can, over a pipe of its own.
+// The web API cannot set an activity at all; only a program beside it can.
 package discord
 
 import (
@@ -25,10 +24,8 @@ const (
 // A length past this is a socket belonging to something other than Discord.
 const biggest = 64 << 10
 
-// How long an answer is waited for. Discord answers every command, and one
-// that does not would otherwise be waited on forever: the loop stops, the card
-// freezes where it stands, and nothing ever reconnects. A named pipe on
-// Windows takes no deadline, so closing it is what lets the read go.
+// Discord answers every command. One that does not would be waited on for
+// good: the loop stops, the card freezes, and nothing ever reconnects.
 const Patience = 5 * time.Second
 
 // The word above the card. Music that says "watching" is noticed at once.

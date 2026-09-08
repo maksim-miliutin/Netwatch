@@ -21,8 +21,6 @@ const (
 // does, and giving up on the first missing socket would need a restart by hand.
 const Again = 10 * time.Second
 
-// Follow keeps Discord showing what is playing, and returns when the context
-// is done.
 func Follow(ctx context.Context, id string, watching *now.Watch,
 	hidden func(string) bool, say func(string)) {
 	beat := time.NewTicker(Beat)

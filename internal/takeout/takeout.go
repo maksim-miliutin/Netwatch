@@ -1,6 +1,5 @@
-// Package takeout reads the history a service hands over when asked: what was
-// watched before the extension was installed. The shape below is what the
-// file contains rather than what the documentation says.
+// Package takeout reads the history a service hands over: what was watched
+// before the extension was installed.
 package takeout
 
 import (

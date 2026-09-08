@@ -1,8 +1,5 @@
 // Package quiet holds the services somebody would rather friends did not see.
-//
-// What is hidden rather than what is shown: a service added to the program
-// later should turn up on the card by itself, not go missing until somebody
-// notices and goes looking for a checkbox.
+// What is hidden rather than what is shown, so a service added later shows.
 package quiet
 
 import (
@@ -48,9 +45,7 @@ func (l *List) Hidden(service string) bool {
 	return l.hidden[service]
 }
 
-// Hide replaces what is hidden with what is asked for. The whole set at once,
-// because that is what a page of checkboxes knows: which boxes are ticked now,
-// not which one somebody just clicked.
+// The whole set at once: that is what a page of checkboxes knows.
 func (l *List) Hide(services []string) error {
 	l.mu.Lock()
 	defer l.mu.Unlock()
@@ -70,7 +65,6 @@ func (l *List) Hide(services []string) error {
 	return os.WriteFile(l.file, []byte(strings.Join(l.Names(), "\n")+"\n"), 0o600)
 }
 
-// Names is what is hidden, in an order somebody reading the file can follow.
 func (l *List) Names() []string {
 	names := make([]string, 0, len(l.hidden))
 

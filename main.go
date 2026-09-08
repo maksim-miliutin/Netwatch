@@ -1,21 +1,22 @@
 // netwatch keeps a list of what was watched and listened to on this machine.
 //
-// Nothing here reads the network: what is being watched lives inside TLS and
-// no amount of packet reading will say the name of a video. What does know
-// the name is the browser looking at the page, so a small extension reports
-// the tab and this writes it down.
+// Nothing here reads the network: what is watched lives inside TLS. The
+// browser knows the name, so a small extension reports it.
 package main
 
 import (
 	"context"
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
+	"time"
 
 	"netwatch/internal/discord"
 	"netwatch/internal/now"
@@ -29,6 +30,7 @@ func main() {
 	port := flag.Int("port", 7373, "where to listen, on this machine only")
 	file := flag.String("file", "", "where to keep the list")
 	from := flag.String("import", "", "a watch-history.json out of a Takeout archive")
+	alone := flag.Bool("window", true, "open a window of its own on start")
 	card := flag.String("discord", "",
 		"an application id, to put what plays on a Discord card. off forgets it")
 	flag.Parse()
@@ -62,34 +64,67 @@ func main() {
 	}
 
 	watching := now.New()
-	server := &web.Server{Store: kept, Watching: watching, Quiet: hushed}
+	said := &latest{}
+
+	server := &web.Server{
+		Store:    kept,
+		Watching: watching,
+		Quiet:    hushed,
+		Says:     said.last,
+		Quitting: func() { os.Exit(0) },
+	}
 	address := fmt.Sprintf("127.0.0.1:%d", *port)
 
 	// The port is taken before anything is said about it. Saying it first and
 	// failing after leaves two cheerful lines above the reason nothing works.
+	written := writing(filepath.Join(filepath.Dir(where), "log"))
+	if written != nil {
+		defer written.Close()
+	}
+
 	ear, err := net.Listen("tcp", address)
 	if err != nil {
+		// Already running: somebody who closed the window wants it back, not two
+		// of these.
+		if awake(address) {
+			note(written, "netwatch is already running.")
+
+			if *alone {
+				if err := window("http://" + address); err != nil {
+					note(written, err.Error())
+				}
+			}
+
+			return
+		}
+
 		log.Fatal(err)
 	}
 
-	fmt.Printf("netwatch is running. Open http://%s in a browser.\n", address)
-	fmt.Printf("The list is kept in %s and goes nowhere else.\n", where)
+	note(written, fmt.Sprintf("netwatch is running. Open http://%s in a browser.", address))
+	note(written, fmt.Sprintf("The list is kept in %s and goes nowhere else.", where))
 
 	// The card is the one thing here that leaves the machine, so it runs only
 	// for somebody who went and got an application id for it.
 	if id != "" {
 		go discord.Follow(context.Background(), id, watching, hushed.Hidden,
 			func(text string) {
-				fmt.Println(text)
+				said.keep(text)
+				note(written, text)
 			})
+	}
+
+	if *alone {
+		if err := window("http://" + address); err != nil {
+			note(written, err.Error())
+		}
 	}
 
 	log.Fatal(http.Serve(ear, web.Near(server.Routes())))
 }
 
-// Reads a history handed over by a service and stops. Importing and serving in
-// one run would leave somebody watching a page while the list rearranges under
-// them.
+// Reads a history and stops: importing while serving would rearrange the
+// list under somebody reading it.
 func bring(kept *store.Store, from string) error {
 	file, err := os.Open(from)
 	if err != nil {
@@ -121,6 +156,62 @@ func bring(kept *store.Store, from string) error {
 	return nil
 }
 
+// awake asks whether what is holding the port is this. Something else on it
+// is a mistake to say out loud, not a window to open.
+func awake(address string) bool {
+	client := http.Client{Timeout: 2 * time.Second}
+
+	answer, err := client.Get("http://" + address + "/api/now")
+	if err != nil {
+		return false
+	}
+	defer answer.Body.Close()
+
+	return answer.StatusCode == http.StatusOK
+}
+
+// Windows can start a program with no console, and then anything printed
+// goes nowhere. log is pointed at the same file.
+func writing(file string) *os.File {
+	written, err := os.OpenFile(file, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o600)
+	if err != nil {
+		return nil
+	}
+
+	log.SetOutput(io.MultiWriter(os.Stderr, written))
+
+	return written
+}
+
+func note(written io.Writer, text string) {
+	fmt.Println(text)
+
+	if written != nil {
+		fmt.Fprintf(written, "%s %s\n", time.Now().Format(time.RFC3339), text)
+	}
+}
+
+// The last thing the card had to say. With no console it has nowhere else to
+// appear, so the popup in the browser asks for it.
+type latest struct {
+	mu   sync.Mutex
+	text string
+}
+
+func (l *latest) keep(text string) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
+	l.text = text
+}
+
+func (l *latest) last() string {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
+	return l.text
+}
+
 // A flag is no use to somebody who starts this by double clicking it, and an
 // application id is not a secret: everybody who reads the card can read it.
 func remembered(asked, dir string) (string, error) {
@@ -147,9 +238,8 @@ func remembered(asked, dir string) (string, error) {
 	return strings.TrimSpace(string(kept)), err
 }
 
-// Beside the program when that can be written to, and in the home folder when
-// it cannot: a program dropped in a downloads folder should not lose its list
-// the day somebody tidies up.
+// Beside the program when that can be written to, and in the home folder
+// when it cannot.
 func chosen(asked string) (string, error) {
 	if asked != "" {
 		return asked, nil

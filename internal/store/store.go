@@ -1,8 +1,7 @@
 // Package store keeps the plays in a file, one to a line.
 //
-// A line at a time rather than a database: what is written is only added to,
-// and all of it fits in memory. A database would cost a dependency and buy
-// nothing.
+// A line at a time rather than a database: what is written is only added
+// to, it all fits in memory, and a database would cost a dependency.
 package store
 
 import (
@@ -22,10 +21,8 @@ type Store struct {
 	// idle, and a handle held for hours outlives the disk it points at.
 	file string
 
-	// What was read last, and what the file looked like then. A year of plays
-	// parsed again for every page — and the page redraws itself every ten
-	// seconds — is work nobody asked for. Nothing else writes here, and
-	// noticing a hand edit costs one stat.
+	// What was read last, and what the file looked like then. Nothing else
+	// writes here, and noticing a hand edit costs one stat.
 	plays []play.Play
 	when  time.Time
 	size  int64
@@ -41,10 +38,8 @@ func Open(file string) (*Store, error) {
 	return &Store{file: file}, nil
 }
 
-// Add writes one play down, unless the same one is already last: a tab left
-// open reports itself again on every check. It also closes the one before
-// it, because a play ends when the next one starts and that is the only end
-// most of them get.
+// Add writes one play down unless the same one is already last, and closes
+// the one before it: a play ends when the next begins.
 func (s *Store) Add(one play.Play) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -151,8 +146,7 @@ func (s *Store) All() ([]play.Play, error) {
 	return newest, nil
 }
 
-// Forget takes one play out of the file. A list somebody cannot cross a line
-// out of is a list they stop keeping.
+// A list somebody cannot cross a line out of is a list they stop keeping.
 func (s *Store) Forget(service, id string, at time.Time) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()

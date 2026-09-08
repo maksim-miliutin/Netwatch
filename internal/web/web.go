@@ -86,18 +86,10 @@ func (s *Server) Routes() *http.ServeMux {
 	return mux
 }
 
-// Nothing here is reachable from anywhere but this machine. Checked per
-// request rather than only in the address it listens on: a program that binds
-// loopback and trusts everything it gets is one setting away from an open door.
-//
-// The name it was called by is checked too. A name somebody else owns, pointed
-// at 127.0.0.1, makes a browser treat their page as this one — and the address
-// dialled is loopback either way, so the first check sees nothing wrong.
-//
-// And that whoever wrote here meant to. A page can post to any address it likes
-// without asking the browser first, so long as what it sends looks like a form
-// — enough to write the list and put anything on the card. It cannot send this
-// content type without asking, and nothing here ever answers that question.
+// Nothing here is reachable from anywhere but this machine, and three things
+// are asked rather than one. Where the connection came from; the name it was
+// called by, since a name pointed at 127.0.0.1 dials loopback all the same;
+// and whether whoever wrote here meant to.
 func Near(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !here(r.RemoteAddr) {
@@ -134,9 +126,8 @@ func here(address string) bool {
 	return ip != nil && ip.IsLoopback()
 }
 
-// Two ways in. JSON is one: a page cannot send that type across sites without
-// asking first, and nothing here answers. A form is the other, and a browser
-// says where a form came from — so it has to have come from this page.
+// Two ways in: a type a page cannot send across sites without asking, or a
+// form the browser says came from here.
 func meant(r *http.Request) bool {
 	if readable(r.Header.Get("content-type")) {
 		return true
@@ -213,8 +204,6 @@ type living struct {
 }
 
 // A page knows the name of what it plays; a tab knows the name of the tab.
-// "Нечто — YouTube" is a worse line in a list than "Нечто", so this writes the
-// play down as well.
 func (s *Server) playing(w http.ResponseWriter, r *http.Request) {
 	var said living
 
@@ -303,9 +292,7 @@ func (s *Server) told() string {
 	return s.Says()
 }
 
-// The list, in the one shape every spreadsheet on earth will open. The file
-// itself is a line of JSON per play, which is honest and unreadable by
-// anything somebody already has.
+// A line of JSON per play is honest and unreadable by anything anybody has.
 func (s *Server) sheet(w http.ResponseWriter, r *http.Request) {
 	plays, err := s.Store.All()
 	if err != nil {
@@ -359,10 +346,8 @@ func (s *Server) forget(w http.ResponseWriter, r *http.Request) {
 	back(w, r)
 }
 
-// Started without a console there is no window to close and no Ctrl-C to
-// press, and Task Manager is a poor way to end an evening. Quitting is a
-// write, so it goes through the same door as the rest: off this page or not
-// at all.
+// Quitting is a write, so it goes through the same door as the rest: off
+// this page or not at all.
 func (s *Server) quit(w http.ResponseWriter, r *http.Request) {
 	answer(w, map[string]bool{"quitting": true})
 
@@ -377,7 +362,6 @@ func (s *Server) quit(w http.ResponseWriter, r *http.Request) {
 	}()
 }
 
-// A Choice is one service and whether it goes on the card.
 type Choice struct {
 	Name  string
 	Shown bool
@@ -442,9 +426,8 @@ func (s *Server) hiding(w http.ResponseWriter, r *http.Request) {
 	back(w, r)
 }
 
-// Shows is how much of the list the page draws. A Takeout import is tens of
-// thousands of rows, and the page redraws itself every ten seconds: all of it
-// is a page nobody scrolls and a file read for nothing.
+// Shows is how much of the list the page draws. All of a Takeout import is
+// a page nobody scrolls, redrawn every ten seconds.
 const Shows = 200
 
 // A search somebody just typed should survive a click on something else.

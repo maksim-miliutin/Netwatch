@@ -48,9 +48,8 @@ var services = []Service{
 				return strings.TrimPrefix(u.Path, "/")
 			}
 
-			// A watch page names the video in a parameter, and everything
-			// else names it in the path. Shorts are watched more than
-			// anything else on there and went unwritten for months.
+			// A watch page names the video in a parameter, everything else in the path.
+			// Shorts are watched more than anything and went unwritten for months.
 			if id := piece(u.Path, "/shorts/", "/live/", "/embed/"); id != "" {
 				return id
 			}
@@ -276,9 +275,7 @@ var services = []Service{
 		Shown: "TikTok",
 		Hosts: []string{"tiktok.com", "www.tiktok.com", "vm.tiktok.com"},
 		Watching: func(u *url.URL) string {
-			// Nobody shares the long address. A short one is the whole of the
-			// path, and it stands in for an id: two of them are two videos
-			// even when neither says which.
+			// Nobody shares the long address, and a short one has no id but itself.
 			if u.Host == "vm.tiktok.com" {
 				return strings.Trim(u.Path, "/")
 			}
@@ -464,11 +461,8 @@ func after(path, marker string) string {
 	return rest
 }
 
-// under is what follows any of these path parts, and nothing when the path is
-// under none of them. A cinema names a film in the path rather than in a
-// parameter, and the rest of the path does for an id: what is needed is
-// telling one film from the next, not matching whatever shape the site uses
-// this year.
+// under is what follows a path part, and the rest of the path stands in for
+// an id: telling one film from the next is all that is needed.
 func under(path string, parts ...string) string {
 	for _, part := range parts {
 		if strings.HasPrefix(path, part) {
@@ -491,9 +485,6 @@ func numbered(path string) string {
 	return last
 }
 
-// piece is what follows whichever of these markers the address uses. A site
-// that names a track, an album and a playlist the same way needs one rule
-// rather than three services.
 func piece(path string, markers ...string) string {
 	for _, marker := range markers {
 		if id := after(path, marker); id != "" {
