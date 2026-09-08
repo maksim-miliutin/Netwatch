@@ -194,3 +194,19 @@ func TestRecognisesShortsAndStreams(t *testing.T) {
 		}
 	}
 }
+
+// Clips are named the way videos are, and go by faster and in greater numbers.
+func TestRecognisesClips(t *testing.T) {
+	for address, wanted := range map[string]string{
+		"https://vk.com/clip-2000123_456789":     "-2000123_456789",
+		"https://vkvideo.ru/clip-2000123_456789": "-2000123_456789",
+		"https://vk.com/video-123_456":           "-123_456",
+		"https://clips.twitch.tv/SomeClipName":   "SomeClipName",
+	} {
+		one, ok := Recognise(address, "Something", time.Now())
+
+		if !ok || one.ID != wanted {
+			t.Errorf("%s: got %q %v", address, one.ID, ok)
+		}
+	}
+}

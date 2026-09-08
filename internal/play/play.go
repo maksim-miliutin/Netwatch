@@ -81,13 +81,14 @@ var services = []Service{
 		Shown: "VK Video",
 		Hosts: []string{"vk.com", "vkvideo.ru", "m.vk.com"},
 		Watching: func(u *url.URL) string {
-			return after(u.Path, "/video")
+			// A clip is named the same way a video is, and is watched more.
+			return piece(u.Path, "/video", "/clip")
 		},
 	},
 	{
 		Name:  "twitch",
 		Shown: "Twitch",
-		Hosts: []string{"twitch.tv", "www.twitch.tv"},
+		Hosts: []string{"twitch.tv", "www.twitch.tv", "clips.twitch.tv"},
 		Watching: func(u *url.URL) string {
 			if id := after(u.Path, "/videos/"); id != "" {
 				return id
