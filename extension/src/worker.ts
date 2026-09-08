@@ -1,9 +1,5 @@
-// Tells netwatch what is open and nothing anywhere else: the manifest lets
-// this reach loopback and nothing further.
-//
-// The port is asked for every time rather than kept. A service worker is put
-// to sleep and started again all day, and a port read once would be the port
-// from before somebody changed it.
+// Tells netwatch what is open and nothing anywhere else. The port is asked
+// for every time: a service worker sleeps all day and wakes up out of date.
 async function netwatch(): Promise<string>
 {
     const kept = await chrome.storage.local.get('port');

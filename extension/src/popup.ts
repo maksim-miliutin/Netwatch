@@ -100,7 +100,6 @@ async function ask(): Promise<void>
     }
 }
 
-// The link goes to the same place the asking does.
 chrome.storage.local.get('port').then((kept) =>
 {
     const list = document.getElementById('list') as HTMLAnchorElement;
@@ -116,7 +115,19 @@ function wording(asleep: boolean): void
     document.body.classList.toggle('asleep', asleep);
 }
 
-chrome.storage.local.get('asleep').then((kept) => wording(kept.asleep === true));
+chrome.storage.local.get('asleep').then((kept) =>
+{
+    const asleep = kept.asleep === true;
+
+    wording(asleep);
+
+    // Said rather than shown by a shade of grey: dimming means nothing to
+    // somebody who has not seen it undimmed.
+    if (asleep)
+    {
+        line('Paused. Nothing is being written down.', 'stopped');
+    }
+});
 
 pause.addEventListener('click', async () =>
 {
@@ -125,6 +136,17 @@ pause.addEventListener('click', async () =>
 
     await chrome.storage.local.set({ asleep });
     wording(asleep);
+
+    state.textContent = '';
+
+    if (asleep)
+    {
+        line('Paused. Nothing is being written down.', 'stopped');
+    }
+    else
+    {
+        ask();
+    }
 });
 
 ask();
