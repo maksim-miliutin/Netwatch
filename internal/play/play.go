@@ -48,6 +48,13 @@ var services = []Service{
 				return strings.TrimPrefix(u.Path, "/")
 			}
 
+			// A watch page names the video in a parameter, and everything
+			// else names it in the path. Shorts are watched more than
+			// anything else on there and went unwritten for months.
+			if id := piece(u.Path, "/shorts/", "/live/", "/embed/"); id != "" {
+				return id
+			}
+
 			return u.Query().Get("v")
 		},
 	},
@@ -56,7 +63,7 @@ var services = []Service{
 		Shown: "RuTube",
 		Hosts: []string{"rutube.ru", "www.rutube.ru"},
 		Watching: func(u *url.URL) string {
-			return after(u.Path, "/video/")
+			return piece(u.Path, "/video/", "/shorts/", "/live/")
 		},
 	},
 	{

@@ -174,3 +174,23 @@ func TestIgnoresProfilesAndFrontPages(t *testing.T) {
 		}
 	}
 }
+
+// A watch page names the video in a parameter and everything else names it in
+// the path. Shorts are watched more than anything, and went unwritten.
+func TestRecognisesShortsAndStreams(t *testing.T) {
+	for address, wanted := range map[string]string{
+		"https://www.youtube.com/shorts/abc123": "abc123",
+		"https://www.youtube.com/live/def456":   "def456",
+		"https://www.youtube.com/embed/ghi789":  "ghi789",
+		"https://m.youtube.com/watch?v=jkl":     "jkl",
+		"https://youtu.be/mno":                  "mno",
+		"https://rutube.ru/shorts/pqr/":         "pqr",
+		"https://rutube.ru/video/stu/":          "stu",
+	} {
+		one, ok := Recognise(address, "Something", time.Now())
+
+		if !ok || one.ID != wanted {
+			t.Errorf("%s: got %q %v", address, one.ID, ok)
+		}
+	}
+}
