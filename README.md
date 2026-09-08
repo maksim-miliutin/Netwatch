@@ -1,3 +1,5 @@
+![](art/smile.png)
+
 # netwatch
 
 A list of what was watched and listened to on this machine. YouTube, Twitch,
@@ -13,6 +15,43 @@ in a file beside it.
 go build -o netwatch .
 ./netwatch
 ```
+
+On Windows the same gives `netwatch.exe` with an icon: the `.syso` beside
+`main.go` is the icon, and the linker picks it up on its own.
+
+```
+GOOS=windows GOARCH=amd64 go build -o netwatch.exe .
+```
+
+With `-ldflags "-H windowsgui"` it starts without a console and stays out of
+the taskbar, which is where a thing that runs all day belongs:
+
+```
+GOOS=windows GOARCH=amd64 go build -ldflags "-H windowsgui" -o netwatch.exe .
+```
+
+Nothing is printed then, so everything said is also written to
+`.netwatch/log` beside the list, and whatever the card is doing shows up in
+the extension popup.
+
+## A window of its own
+
+On start it opens the page in a window without tabs or an address bar, through
+whichever of Edge or Chrome is there. Its own button in the taskbar, its own
+icon, nothing of the browser around it. `-window=false` leaves the browser
+alone.
+
+That is a window rather than an embedded one on purpose. A real one means
+WebView2, which means cgo and the first dependency this has ever had — worth
+it only once the borrowed window turns out not to be enough.
+
+Closing that window does not stop anything — the program is not the window,
+and it goes on writing the list and holding up the card. Starting it again is
+what brings the window back: a second start finds the first one already there
+and opens a window rather than complaining about a taken port.
+
+There is a Quit button at the foot of the page, because a program started
+without a console has nothing else to close it with.
 
 One file, ten megabytes, nothing to install. Open `http://127.0.0.1:7373`.
 
@@ -42,8 +81,43 @@ name of a video.
 Whichever tab started playing first keeps the line at the top of the page. A
 second video opened beside it waits rather than taking over halfway through.
 
-Everything goes to `127.0.0.1:7373` and nowhere else. The manifest says so, and
-the browser holds it to that.
+Everything goes to loopback and nowhere else. The manifest says so, and the
+browser holds it to that.
+
+The port is 7373 unless the program was started with `-port`. The extension has
+a settings page for that — right click the icon, Options. Until it knew, a
+different port meant the extension reported into nothing and had no way to say
+so.
+
+## The card
+
+The card is the one thing here that leaves the machine, so it is turned on by
+hand.
+
+1. `discord.com/developers/applications` → New Application. The name given
+   there is what Discord writes above the card.
+2. Rich Presence → Art Assets → upload the tiles from `art/`. The name of a
+   picture has to match the name of a service: `youtube`, `spotify`,
+   `kinopoisk`. Discord takes a few minutes to notice new ones.
+3. General Information → Application ID:
+
+```
+./netwatch -discord 1234567890
+```
+
+The number is remembered beside the list, so the flag is needed once — an exe
+gets double clicked, not typed. `-discord off` forgets it.
+
+The card carries the name, the channel, a bar and a button to the address.
+Nothing else is sent: a card has no history, only what is playing this second.
+Music says "listening", everything else says "watching".
+
+Discord can be closed, opened later, restarted — netwatch connects when one
+appears, and takes the card down when the tab goes.
+
+The tiles are netwatch's own, not the services' marks: somebody else's logo in
+your application is still somebody else's logo. Whoever holds the right to the
+real ones can upload those under the same names.
 
 ## Adding a service
 
@@ -106,4 +180,3 @@ at. So are searches: a page of the service, not a watch.
 
 - Days as well as weeks
 - Yandex Music hands over a history through a key of its own
-- What plays, on a Discord card

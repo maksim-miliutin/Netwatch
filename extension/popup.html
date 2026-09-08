@@ -15,6 +15,8 @@
 
     .what { font-weight: 600; }
     .who, .quiet { color: #6b7178; }
+    .said { color: #6b7178; font-size: 11px; margin-top: 10px;
+            border-top: 1px solid #e4e2dd; padding-top: 8px; }
 
     .bar { height: 3px; background: #e4e2dd; margin: 10px 0 4px; }
     .bar i { display: block; height: 100%; width: 0; background: #1a1f24; }
@@ -26,7 +28,7 @@
 </head>
 <body>
     <div id="state"></div>
-    <a href="http://127.0.0.1:7373" target="_blank">Open the list</a>
+    <a id="list" href="http://127.0.0.1:7373" target="_blank">Open the list</a>
     <script src="dist/popup.js"></script>
 </body>
 </html>

@@ -1,6 +1,15 @@
-// Tells netwatch what is open, and nothing anywhere else: the addresses below
-// are the only ones this may reach, and the manifest holds it to that.
-const NETWATCH = 'http://127.0.0.1:7373/api';
+// Tells netwatch what is open and nothing anywhere else: the manifest lets
+// this reach loopback and nothing further.
+//
+// The port is asked for every time rather than kept. A service worker is put
+// to sleep and started again all day, and a port read once would be the port
+// from before somebody changed it.
+async function netwatch(): Promise<string>
+{
+    const kept = await chrome.storage.local.get('port');
+
+    return 'http://127.0.0.1:' + (kept.port ?? 7373) + '/api';
+}
 
 // A page is called "YouTube" for a moment and then gets the name of the video,
 // so the list is only useful if the title is given time to settle.
@@ -31,7 +40,7 @@ async function post(where: string, said: unknown): Promise<void>
 {
     try
     {
-        await fetch(NETWATCH + where,
+        await fetch(await netwatch() + where,
         {
             method: 'POST',
             headers: { 'content-type': 'application/json' },

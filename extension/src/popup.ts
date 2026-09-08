@@ -10,6 +10,7 @@ interface Now
     paused?: boolean;
     gone?: number;
     whole?: number;
+    discord?: string;
 }
 
 const state = document.getElementById('state') as HTMLElement;
@@ -55,6 +56,7 @@ function draw(on: Now): void
     if (!on.playing)
     {
         line('Running. Nothing playing.', 'quiet');
+        card(on);
 
         return;
     }
@@ -68,13 +70,27 @@ function draw(on: Now): void
     {
         bar(on.gone ?? 0, on.whole);
     }
+
+    card(on);
+}
+
+// Started without a console, the program has nowhere to say this out loud.
+function card(on: Now): void
+{
+    if (on.discord)
+    {
+        line(on.discord, 'said');
+    }
 }
 
 async function ask(): Promise<void>
 {
     try
     {
-        const answer = await fetch('http://127.0.0.1:7373/api/now');
+        const kept = await chrome.storage.local.get('port');
+        const port = kept.port ?? 7373;
+
+        const answer = await fetch('http://127.0.0.1:' + port + '/api/now');
 
         draw(await answer.json() as Now);
     }
@@ -83,5 +99,13 @@ async function ask(): Promise<void>
         line('netwatch is not running.', 'quiet');
     }
 }
+
+// The link goes to the same place the asking does.
+chrome.storage.local.get('port').then((kept) =>
+{
+    const list = document.getElementById('list') as HTMLAnchorElement;
+
+    list.href = 'http://127.0.0.1:' + (kept.port ?? 7373);
+});
 
 ask();
