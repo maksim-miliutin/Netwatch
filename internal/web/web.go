@@ -65,6 +65,11 @@ type Server struct {
 	// What to do when the page asks to stop. Nil in a test, which should not
 	// be able to end the run that is testing it.
 	Quitting func()
+
+	// The application id the card is on, and what to do when the page hands
+	// over another. A dash turns it off.
+	Id      string
+	Joining func(id string) error
 }
 
 func (s *Server) Routes() *http.ServeMux {
@@ -77,6 +82,7 @@ func (s *Server) Routes() *http.ServeMux {
 	mux.HandleFunc("GET /api/now", s.showing)
 	mux.HandleFunc("POST /api/quiet", s.hiding)
 	mux.HandleFunc("POST /api/quit", s.quit)
+	mux.HandleFunc("POST /api/discord", s.joining)
 	mux.HandleFunc("POST /api/forget", s.forget)
 	mux.HandleFunc("GET /plays.csv", s.sheet)
 	mux.HandleFunc("GET /api/plays", s.plays)
@@ -341,6 +347,31 @@ func (s *Server) forget(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 
 		return
+	}
+
+	back(w, r)
+}
+
+// Until this, the id came from a flag, and a program started by double
+// clicking is handed no flags: the exe could not be joined to Discord at all.
+func (s *Server) joining(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil || s.Joining == nil {
+		http.Error(w, "unreadable", http.StatusBadRequest)
+
+		return
+	}
+
+	asked := strings.TrimSpace(r.FormValue("id"))
+
+	if err := s.Joining(asked); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+
+		return
+	}
+
+	s.Id = asked
+	if asked == "-" {
+		s.Id = ""
 	}
 
 	back(w, r)
@@ -646,9 +677,12 @@ func (s *Server) show(w http.ResponseWriter, r *http.Request) {
 		Span    string
 		More    int
 		Find    string
+		Card    string
+		Said    string
 		Choices []Choice
 	}{s.onNow(), byDay(plays, time.Now()), total, title, elsewhere(next, find),
-		named, r.URL.Query().Get("span"), more, find, s.choices(plays)})
+		named, r.URL.Query().Get("span"), more, find, s.Id, s.told(),
+		s.choices(plays)})
 }
 
 func answer(w http.ResponseWriter, body any) {

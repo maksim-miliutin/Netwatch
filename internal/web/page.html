@@ -65,6 +65,13 @@
 
     .below { margin-top: 4rem; }
     .below h2 { margin-top: 0; }
+    .below h2.apart { margin-top: 2.5rem; }
+
+    .join { margin: 0 0 0.4rem; }
+    .join input { font: inherit; font-size: 0.9rem; width: 13rem;
+                  padding: 0.25rem 0.5rem; }
+    .join button { font: inherit; font-size: 0.85rem; padding: 0.25rem 0.8rem; }
+    .said { color: #1a1f24; font-size: 0.88rem; margin: 0.8rem 0 0; }
 
     .stop { border: 0; background: none; color: #6b7178; font: inherit;
             font-size: 0.85rem; padding: 0; margin-top: 2rem;
@@ -163,8 +170,28 @@
     <p class="quiet"><a href="/plays.csv">Take the whole list as a spreadsheet</a></p>
 
     <div class="below">
+
+    <h2>Discord</h2>
+    <p class="quiet">What plays goes on your Discord profile, where friends see
+    it. Off until you put a number here.</p>
+
+    <form class="join" method="post" action="/api/discord">
+        <input type="text" name="id" value="{{.Card}}" placeholder="application id"
+               autocomplete="off">
+        <button>Connect</button>
+        {{if .Card}}<button name="id" value="-" class="stop">Disconnect</button>{{end}}
+    </form>
+
+    <p class="quiet">The number comes from
+    <a href="https://discord.com/developers/applications" target="_blank"
+       rel="noreferrer">discord.com/developers/applications</a>: New Application,
+    then General Information, then Application ID. Discord itself has to be the
+    desktop one, and open.</p>
+
+    {{if .Said}}<p class="said">{{.Said}}</p>{{end}}
+
     {{if .Choices}}
-    <h2>On the card</h2>
+    <h2 class="apart">On the card</h2>
     <p class="quiet">Unticked services stay out of Discord. The list keeps them
     either way.</p>
 

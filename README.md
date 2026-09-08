@@ -103,14 +103,13 @@ hand.
 2. Rich Presence → Art Assets → upload the tiles from `art/`. The name of a
    picture has to match the name of a service: `youtube`, `spotify`,
    `kinopoisk`. Discord takes a few minutes to notice new ones.
-3. General Information → Application ID:
+3. General Information → Application ID. Paste it into the Discord box at the
+   foot of the page and press Connect.
 
-```
-./netwatch -discord 1234567890
-```
-
-The number is remembered beside the list, so the flag is needed once — an exe
-gets double clicked, not typed. `-discord off` forgets it.
+The number is remembered beside the list, so it is asked for once. Disconnect
+puts it back down. `-discord 1234567890` does the same from a terminal, for
+anybody who has one — a program started by double clicking is handed no flags,
+which is why the box exists.
 
 The card carries the name, the channel, a bar and a button to the address.
 Nothing else is sent: a card has no history, only what is playing this second.
@@ -122,6 +121,15 @@ appears, and takes the card down when the tab goes.
 The tiles are netwatch's own, not the services' marks: somebody else's logo in
 your application is still somebody else's logo. Whoever holds the right to the
 real ones can upload those under the same names.
+
+## What friends see
+
+The tick boxes at the foot of the page decide which services reach the card.
+Unticked ones are still written down — the list is yours, the card is not.
+
+What is hidden is what is kept, in `.netwatch/quiet`, one name to a line. A
+service added to the program later turns up on the card by itself rather than
+going missing until somebody notices.
 
 ## Adding a service
 
@@ -147,6 +155,21 @@ is still YouTube and still not a video. `Shown` is the name people read, and
 One place outside the program: the address goes into `content_scripts` in the
 extension manifest. A manifest is read before the program starts and cannot ask
 it anything.
+
+## The page
+
+What is playing sits at the top with a bar that moves on its own. Under it the
+week, and a link to the month or to the lot: a week does not answer where a
+year went.
+
+The list is broken up by day, newest first, two hundred rows of it — the rest
+stays in the file rather than in a page nobody scrolls. There is a search, and
+a cross at the end of every row: a list somebody cannot cross a line out of is
+a list they stop keeping.
+
+`plays.csv` takes the whole of it away as a spreadsheet. The file itself is a
+line of JSON per play, which is honest and unreadable by anything already on
+the machine.
 
 ## How long
 

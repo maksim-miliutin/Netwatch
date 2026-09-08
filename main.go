@@ -31,7 +31,7 @@ func main() {
 	file := flag.String("file", "", "where to keep the list")
 	from := flag.String("import", "", "a watch-history.json out of a Takeout archive")
 	alone := flag.Bool("window", true, "open a window of its own on start")
-	card := flag.String("discord", "",
+	given := flag.String("discord", "",
 		"an application id, to put what plays on a Discord card. off forgets it")
 	flag.Parse()
 
@@ -53,7 +53,7 @@ func main() {
 		return
 	}
 
-	id, err := remembered(*card, filepath.Dir(where))
+	id, err := remembered(*given, filepath.Dir(where))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -63,8 +63,23 @@ func main() {
 		log.Fatal(err)
 	}
 
+	// The log is opened before anything that writes to it.
+	written := writing(filepath.Join(filepath.Dir(where), "log"))
+	if written != nil {
+		defer written.Close()
+	}
+
 	watching := now.New()
 	said := &latest{}
+
+	showing := &card{
+		watching: watching,
+		hidden:   hushed.Hidden,
+		told: func(text string) {
+			said.keep(text)
+			note(written, text)
+		},
+	}
 
 	server := &web.Server{
 		Store:    kept,
@@ -72,16 +87,22 @@ func main() {
 		Quiet:    hushed,
 		Says:     said.last,
 		Quitting: func() { os.Exit(0) },
+		Id:       id,
+		Joining: func(asked string) error {
+			kept, err := remembered(asked, filepath.Dir(where))
+			if err != nil {
+				return err
+			}
+
+			showing.to(kept)
+
+			return nil
+		},
 	}
 	address := fmt.Sprintf("127.0.0.1:%d", *port)
 
 	// The port is taken before anything is said about it. Saying it first and
 	// failing after leaves two cheerful lines above the reason nothing works.
-	written := writing(filepath.Join(filepath.Dir(where), "log"))
-	if written != nil {
-		defer written.Close()
-	}
-
 	ear, err := net.Listen("tcp", address)
 	if err != nil {
 		// Already running: somebody who closed the window wants it back, not two
@@ -107,11 +128,7 @@ func main() {
 	// The card is the one thing here that leaves the machine, so it runs only
 	// for somebody who went and got an application id for it.
 	if id != "" {
-		go discord.Follow(context.Background(), id, watching, hushed.Hidden,
-			func(text string) {
-				said.keep(text)
-				note(written, text)
-			})
+		showing.to(id)
 	}
 
 	if *alone {
@@ -191,6 +208,39 @@ func note(written io.Writer, text string) {
 	}
 }
 
+// A card that can be turned on and off while running. Until this, the id came
+// from a flag, and a program started by double clicking is handed no flags at
+// all: the exe somebody downloads could not be joined to Discord by any means.
+type card struct {
+	mu   sync.Mutex
+	stop context.CancelFunc
+
+	watching *now.Watch
+	hidden   func(string) bool
+	told     func(string)
+}
+
+func (c *card) to(id string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if c.stop != nil {
+		c.stop()
+		c.stop = nil
+	}
+
+	if id == "" {
+		c.told("The card is off.")
+
+		return
+	}
+
+	ctx, stop := context.WithCancel(context.Background())
+	c.stop = stop
+
+	go discord.Follow(ctx, id, c.watching, c.hidden, c.told)
+}
+
 // The last thing the card had to say. With no console it has nowhere else to
 // appear, so the popup in the browser asks for it.
 type latest struct {
@@ -218,7 +268,7 @@ func remembered(asked, dir string) (string, error) {
 	file := filepath.Join(dir, "discord")
 
 	// An id is a number, so the word cannot be one.
-	if asked == "off" {
+	if asked == "off" || asked == "-" {
 		if err := os.Remove(file); err != nil && !os.IsNotExist(err) {
 			return "", err
 		}
