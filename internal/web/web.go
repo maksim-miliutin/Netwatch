@@ -10,6 +10,7 @@ import (
 	"html/template"
 	"net"
 	"net/http"
+	"net/url"
 	"sort"
 	"strconv"
 	"strings"
@@ -355,7 +356,7 @@ func (s *Server) forget(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+	back(w, r)
 }
 
 // Started without a console there is no window to close and no Ctrl-C to
@@ -438,13 +439,38 @@ func (s *Server) hiding(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+	back(w, r)
 }
 
 // Shows is how much of the list the page draws. A Takeout import is tens of
 // thousands of rows, and the page redraws itself every ten seconds: all of it
 // is a page nobody scrolls and a file read for nothing.
 const Shows = 200
+
+// A search somebody just typed should survive a click on something else.
+func elsewhere(span, find string) string {
+	asked := url.Values{}
+	asked.Set("span", span)
+
+	if find != "" {
+		asked.Set("find", find)
+	}
+
+	return "/?" + asked.Encode()
+}
+
+// Back to where the button was pressed, for the same reason: crossing a line
+// out should not throw away the search it was found by.
+func back(w http.ResponseWriter, r *http.Request) {
+	came := r.Referer()
+
+	if !strings.HasPrefix(came, "http://"+r.Host+"/") &&
+		!strings.HasPrefix(came, "https://"+r.Host+"/") {
+		came = "/"
+	}
+
+	http.Redirect(w, r, came, http.StatusSeeOther)
+}
 
 // Both the name and the service: somebody looking for "twitch" means the
 // service, and somebody looking for a title means the title.
@@ -605,14 +631,19 @@ func (s *Server) show(w http.ResponseWriter, r *http.Request) {
 		plays = matching(plays, find)
 	}
 
-	// Two spans, and the page names the one it is not showing so that finding
-	// the other takes a click rather than a guess.
-	span, other := "week", "month"
+	// Three spans in a ring, and the page names the next one so that finding
+	// it takes a click rather than a guess.
+	title, next, named := "This week", "month", "the month"
 	total := sum.Week(plays, time.Now())
 
-	if r.URL.Query().Get("span") == "month" {
-		span, other = "month", "week"
+	switch r.URL.Query().Get("span") {
+	case "month":
+		title, next, named = "This month", "all", "all of it"
 		total = sum.Month(plays, time.Now())
+
+	case "all":
+		title, next, named = "All of it", "week", "the week"
+		total = sum.Over(plays, time.Time{})
 	}
 
 	more := 0
@@ -626,13 +657,15 @@ func (s *Server) show(w http.ResponseWriter, r *http.Request) {
 		Now     Now
 		Days    []Day
 		Total   sum.Total
+		Title   string
+		Next    string
+		Named   string
 		Span    string
-		Other   string
 		More    int
 		Find    string
 		Choices []Choice
-	}{s.onNow(), byDay(plays, time.Now()), total, span, other, more, find,
-		s.choices(plays)})
+	}{s.onNow(), byDay(plays, time.Now()), total, title, elsewhere(next, find),
+		named, r.URL.Query().Get("span"), more, find, s.choices(plays)})
 }
 
 func answer(w http.ResponseWriter, body any) {

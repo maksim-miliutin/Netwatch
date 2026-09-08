@@ -83,7 +83,7 @@
     {{end}}
 
     {{with .Total}}
-    <h2>This {{$.Span}}</h2>
+    <h2>{{$.Title}}</h2>
     <p>{{times .Plays}}{{if .Seconds}}, {{hours .Seconds}}{{end}}</p>
 
     <ul>
@@ -94,7 +94,7 @@
 
     {{if .Open}}<p class="quiet">{{.Open}} still uncounted: a play is closed by the next one.</p>{{end}}
 
-    <p class="quiet"><a href="/?span={{$.Other}}">show the {{$.Other}}</a></p>
+    <p class="quiet"><a href="{{$.Next}}">show {{$.Named}}</a></p>
     {{end}}
 
     <h2>Plays</h2>
@@ -102,8 +102,9 @@
     <form class="find" method="get" action="/">
         <input type="search" name="find" value="{{.Find}}"
                placeholder="find a name">
+        <input type="hidden" name="span" value="{{.Span}}">
         <button>Find</button>
-        {{if .Find}}<a href="/">all of it</a>{{end}}
+        {{if .Find}}<a href="{{if .Span}}/?span={{.Span}}{{else}}/{{end}}">the lot</a>{{end}}
     </form>
 
     {{range .Days}}

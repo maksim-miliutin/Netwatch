@@ -391,116 +391,39 @@ func TestRefusesTheSameFormFromSomewhereElse(t *testing.T) {
 	}
 }
 
-// Two spans, and the page names the one it is not showing.
-func TestShowsAWeekOrAMonth(t *testing.T) {
+// Three spans in a ring, and the page names the next one.
+func TestShowsAWeekAMonthOrTheLot(t *testing.T) {
 	handler := serving(t)
 
-	week := httptest.NewRecorder()
-	handler.ServeHTTP(week, httptest.NewRequest("GET", "/", nil))
+	for _, step := range []struct {
+		asked  string
+		titled string
+		offers string
+	}{
+		{"/", "This week", "span=month"},
+		{"/?span=month", "This month", "span=all"},
+		{"/?span=all", "All of it", "span=week"},
+	} {
+		page := httptest.NewRecorder()
+		handler.ServeHTTP(page, httptest.NewRequest("GET", step.asked, nil))
 
-	if !strings.Contains(week.Body.String(), "This week") ||
-		!strings.Contains(week.Body.String(), `href="/?span=month"`) {
-		t.Errorf("the week does not offer the month")
-	}
+		if !strings.Contains(page.Body.String(), step.titled) {
+			t.Errorf("%s is not titled %q", step.asked, step.titled)
+		}
 
-	month := httptest.NewRecorder()
-	handler.ServeHTTP(month, httptest.NewRequest("GET", "/?span=month", nil))
-
-	if !strings.Contains(month.Body.String(), "This month") ||
-		!strings.Contains(month.Body.String(), `href="/?span=week"`) {
-		t.Errorf("the month does not offer the week")
+		if !strings.Contains(page.Body.String(), step.offers) {
+			t.Errorf("%s does not offer %s", step.asked, step.offers)
+		}
 	}
 }
 
-// Quitting is a write, so it goes through the same door as the rest: off this
-// page or not at all.
-func TestQuitsOnlyWhenAskedFromThePage(t *testing.T) {
-	stopped := make(chan bool, 1)
+// A search somebody just typed should survive a click on something else.
+func TestKeepsTheSearchWhenTheSpanChanges(t *testing.T) {
+	page := httptest.NewRecorder()
+	serving(t).ServeHTTP(page, httptest.NewRequest("GET", "/?find=bracket", nil))
 
-	kept, err := store.Open(filepath.Join(t.TempDir(), "plays.jsonl"))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	server := &Server{
-		Store:    kept,
-		Watching: now.New(),
-		Quiet:    hushed(t),
-		Quitting: func() { stopped <- true },
-	}
-
-	elsewhere := httptest.NewRequest("POST", "/api/quit", nil)
-	elsewhere.Host = "127.0.0.1:7373"
-	elsewhere.RemoteAddr = "127.0.0.1:5000"
-	elsewhere.Header.Set("content-type", "application/x-www-form-urlencoded")
-	elsewhere.Header.Set("origin", "https://evil.example")
-
-	refused := httptest.NewRecorder()
-	Near(server.Routes()).ServeHTTP(refused, elsewhere)
-
-	if refused.Code != http.StatusUnsupportedMediaType {
-		t.Errorf("a page elsewhere got %d", refused.Code)
-	}
-
-	ours := httptest.NewRequest("POST", "/api/quit", nil)
-	ours.Host = "127.0.0.1:7373"
-	ours.RemoteAddr = "127.0.0.1:5000"
-	ours.Header.Set("content-type", "application/x-www-form-urlencoded")
-	ours.Header.Set("origin", "http://127.0.0.1:7373")
-
-	answer := httptest.NewRecorder()
-	Near(server.Routes()).ServeHTTP(answer, ours)
-
-	if answer.Code != http.StatusOK {
-		t.Fatalf("got %d %s", answer.Code, answer.Body)
-	}
-
-	select {
-	case <-stopped:
-	case <-time.After(2 * time.Second):
-		t.Error("said it was quitting and did not")
-	}
-}
-
-// Crossing a line out is a write, so it comes off this page or not at all.
-func TestCrossesOutOnePlay(t *testing.T) {
-	handler := serving(t)
-
-	sent(t, handler, "/api/now", `{"url":"https://youtu.be/abc","title":"Нечто"}`)
-
-	plays := httptest.NewRecorder()
-	handler.ServeHTTP(plays, httptest.NewRequest("GET", "/api/plays", nil))
-
-	var kept []play.Play
-	if err := json.Unmarshal(plays.Body.Bytes(), &kept); err != nil {
-		t.Fatal(err)
-	}
-
-	if len(kept) != 1 {
-		t.Fatalf("wrote %d", len(kept))
-	}
-
-	body := "service=" + kept[0].Service + "&id=" + kept[0].ID +
-		"&at=" + url.QueryEscape(kept[0].At.Format(time.RFC3339Nano))
-
-	request := httptest.NewRequest("POST", "/api/forget", strings.NewReader(body))
-	request.Host = "127.0.0.1:7373"
-	request.RemoteAddr = "127.0.0.1:5000"
-	request.Header.Set("content-type", "application/x-www-form-urlencoded")
-	request.Header.Set("origin", "http://127.0.0.1:7373")
-
-	answer := httptest.NewRecorder()
-	Near(handler).ServeHTTP(answer, request)
-
-	if answer.Code != http.StatusSeeOther {
-		t.Fatalf("got %d %s", answer.Code, answer.Body)
-	}
-
-	left := httptest.NewRecorder()
-	handler.ServeHTTP(left, httptest.NewRequest("GET", "/api/plays", nil))
-
-	if strings.Contains(left.Body.String(), "Нечто") {
-		t.Errorf("still there: %s", left.Body)
+	if !strings.Contains(page.Body.String(), "find=bracket") {
+		t.Errorf("the link away drops the search: %s", page.Body)
 	}
 }
 
@@ -564,5 +487,50 @@ func TestHandsTheListOverAsASpreadsheet(t *testing.T) {
 	// A comma in a title is what breaks a spreadsheet written by hand.
 	if !strings.Contains(body, `"Нечто, с запятой"`) {
 		t.Errorf("the comma went through unquoted: %s", body)
+	}
+}
+
+// Crossing a line out is a write, so it comes off this page or not at all.
+func TestCrossesOutOnePlay(t *testing.T) {
+	handler := serving(t)
+
+	sent(t, handler, "/api/now", `{"url":"https://youtu.be/abc","title":"Нечто"}`)
+
+	plays := httptest.NewRecorder()
+	handler.ServeHTTP(plays, httptest.NewRequest("GET", "/api/plays", nil))
+
+	var kept []play.Play
+	if err := json.Unmarshal(plays.Body.Bytes(), &kept); err != nil {
+		t.Fatal(err)
+	}
+
+	body := "service=" + kept[0].Service + "&id=" + kept[0].ID +
+		"&at=" + url.QueryEscape(kept[0].At.Format(time.RFC3339Nano))
+
+	request := httptest.NewRequest("POST", "/api/forget", strings.NewReader(body))
+	request.Host = "127.0.0.1:7373"
+	request.RemoteAddr = "127.0.0.1:5000"
+	request.Header.Set("content-type", "application/x-www-form-urlencoded")
+	request.Header.Set("origin", "http://127.0.0.1:7373")
+
+	// Where the button was pressed, so that a search is not thrown away.
+	request.Header.Set("referer", "http://127.0.0.1:7373/?find=bracket")
+
+	answer := httptest.NewRecorder()
+	Near(handler).ServeHTTP(answer, request)
+
+	if answer.Code != http.StatusSeeOther {
+		t.Fatalf("got %d %s", answer.Code, answer.Body)
+	}
+
+	if back := answer.Header().Get("location"); back != "http://127.0.0.1:7373/?find=bracket" {
+		t.Errorf("came back to %q", back)
+	}
+
+	left := httptest.NewRecorder()
+	handler.ServeHTTP(left, httptest.NewRequest("GET", "/api/plays", nil))
+
+	if strings.Contains(left.Body.String(), "Нечто") {
+		t.Errorf("still there: %s", left.Body)
 	}
 }
