@@ -534,3 +534,32 @@ func TestCrossesOutOnePlay(t *testing.T) {
 		t.Errorf("still there: %s", left.Body)
 	}
 }
+
+// A browser that stopped reporting looks exactly like an evening nobody
+// watched anything. Only the date of the last play tells them apart.
+func TestSaysWhetherItIsWorking(t *testing.T) {
+	handler := serving(t)
+
+	first := shown(t, handler)
+
+	if !strings.Contains(first, "Nothing reported yet") {
+		t.Errorf("said nothing about a fresh machine")
+	}
+
+	if !strings.Contains(first, "Two things to do") {
+		t.Errorf("did not say what to do first")
+	}
+
+	sent(t, handler, "/api/seen", `{"url":"https://youtu.be/abc","title":"Нечто"}`)
+
+	after := shown(t, handler)
+
+	if !strings.Contains(after, "Reporting") || !strings.Contains(after, "1 play kept") {
+		t.Errorf("got %q", after[:200])
+	}
+
+	// The two things are done, so the block that said to do them is gone.
+	if strings.Contains(after, "Two things to do") {
+		t.Error("still telling somebody to start")
+	}
+}

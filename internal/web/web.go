@@ -26,6 +26,11 @@ import (
 //go:embed page.html
 var pageSource string
 
+// Said on the way out, when there is no page left to go back to.
+//
+//go:embed gone.html
+var farewell []byte
+
 // Minutes and hours rather than seconds: nobody counts a week in seconds.
 var page = template.Must(template.New("page").Funcs(template.FuncMap{
 	"hours": hours,
@@ -380,7 +385,10 @@ func (s *Server) joining(w http.ResponseWriter, r *http.Request) {
 // Quitting is a write, so it goes through the same door as the rest: off
 // this page or not at all.
 func (s *Server) quit(w http.ResponseWriter, r *http.Request) {
-	answer(w, map[string]bool{"quitting": true})
+	// A page rather than an answer: the button is pressed by a person, and a
+	// person handed raw json reads it as something having gone wrong.
+	w.Header().Set("content-type", "text/html; charset=utf-8")
+	_, _ = w.Write(farewell)
 
 	if s.Quitting == nil {
 		return
@@ -501,6 +509,33 @@ func matching(plays []play.Play, find string) []play.Play {
 	}
 
 	return found
+}
+
+// The line under the name answers what people open this page to ask: is it
+// working. A browser that stopped reporting looks exactly like an evening
+// nobody watched anything, and only the date of the last play tells them apart.
+func (s *Server) working(plays []play.Play) string {
+	said := "Nothing reported yet"
+
+	if len(plays) > 0 {
+		said = "Reporting"
+
+		if time.Since(plays[0].At) > 24*time.Hour {
+			said = "Silent since " + plays[0].At.Format("2 January")
+		}
+	}
+
+	if s.Id != "" {
+		said += " · Discord on"
+	} else {
+		said += " · Discord off"
+	}
+
+	if len(plays) == 1 {
+		return said + " · 1 play kept"
+	}
+
+	return said + " · " + strconv.Itoa(len(plays)) + " plays kept"
 }
 
 // A Day breaks the list up so that a date is said once instead of on every row.
@@ -638,6 +673,9 @@ func (s *Server) show(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("content-type", "text/html; charset=utf-8")
 
+	working := s.working(plays)
+	fresh := len(plays) == 0
+
 	// A month of watching is a few hundred lines, and a year is thousands. The
 	// only way back to a particular one is its name.
 	find := strings.TrimSpace(r.URL.Query().Get("find"))
@@ -677,12 +715,14 @@ func (s *Server) show(w http.ResponseWriter, r *http.Request) {
 		Span    string
 		More    int
 		Find    string
+		Working string
+		Fresh   bool
 		Card    string
 		Said    string
 		Choices []Choice
 	}{s.onNow(), byDay(plays, time.Now()), total, title, elsewhere(next, find),
-		named, r.URL.Query().Get("span"), more, find, s.Id, s.told(),
-		s.choices(plays)})
+		named, r.URL.Query().Get("span"), more, find, working, fresh, s.Id,
+		s.told(), s.choices(plays)})
 }
 
 func answer(w http.ResponseWriter, body any) {

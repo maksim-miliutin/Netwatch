@@ -63,9 +63,16 @@
     tr:hover .cross button, .cross button:focus-visible { opacity: 1; }
     .cross button:hover { color: #1a1f24; }
 
-    .below { margin-top: 4rem; }
-    .below h2 { margin-top: 0; }
+    .start { margin: 1.8rem 0 0; }
+    .start h2 { margin-top: 1.4rem; }
+    .start p { margin: 0.6rem 0; }
+
+    .foot { margin-top: 1.4rem; }
+
+    .below { margin-top: 3.5rem; }
+    .below h2 { margin-top: 1.6rem; }
     .below h2.apart { margin-top: 2.5rem; }
+    .below summary { color: #6b7178; font-size: 0.9rem; cursor: pointer; }
 
     .join { margin: 0 0 0.4rem; }
     .join input { font: inherit; font-size: 0.9rem; width: 13rem;
@@ -86,7 +93,22 @@
 </head>
 <body>
     <h1>netwatch</h1>
-    <p class="lead">What was watched and listened to. On this machine only.</p>
+    <p class="lead">{{.Working}}</p>
+
+    {{if .Fresh}}
+    <section class="start">
+        <h2>Two things to do</h2>
+
+        <p><b>Install the extension.</b> <span class="quiet">Chrome →
+        Extensions → Developer mode → Load unpacked → the
+        <code>extension</code> folder. Nothing is written down until it
+        does.</span></p>
+
+        <p><b>Connect Discord</b> <span class="quiet">if you want friends to
+        see what plays. It is optional, and off until you do — the box is
+        <a href="#settings">at the foot of the page</a>.</span></p>
+    </section>
+    {{end}}
 
     {{if .Now.Playing}}
     <section class="now" data-gone="{{.Now.Gone}}" data-whole="{{.Now.Whole}}"
@@ -165,11 +187,13 @@
     Install the extension and open a video.{{end}}</p>
     {{end}}
 
-    {{if .More}}<p class="quiet">{{.More}} older in the file.</p>{{end}}
+    <p class="foot quiet">
+        {{if .More}}{{.More}} older in the file · {{end}}
+        <a href="/plays.csv">spreadsheet</a> · <a href="#settings">settings</a>
+    </p>
 
-    <p class="quiet"><a href="/plays.csv">Take the whole list as a spreadsheet</a></p>
-
-    <div class="below">
+    <details class="below" id="settings"{{if .Fresh}} open{{end}}>
+    <summary>Settings</summary>
 
     <h2>Discord</h2>
     <p class="quiet">What plays goes on your Discord profile, where friends see
@@ -211,7 +235,7 @@
     <form method="post" action="/api/quit">
         <button class="stop">Quit netwatch</button>
     </form>
-    </div>
+    </details>
 <script>
 // The page used to reload itself every ten seconds, and took whatever was
 // half done with it: three services ticked and not yet saved, a name half
