@@ -36,8 +36,22 @@ const waiting = new Map<number, number>();
 let playing: number | null = null;
 let heard = 0;
 
+// Nothing is written down while this is on. Not everything watched is
+// something to keep, and the only honest way to leave it out is not to send it.
+async function asleep(): Promise<boolean>
+{
+    const kept = await chrome.storage.local.get('asleep');
+
+    return kept.asleep === true;
+}
+
 async function post(where: string, said: unknown): Promise<void>
 {
+    if (await asleep())
+    {
+        return;
+    }
+
     try
     {
         await fetch(await netwatch() + where,

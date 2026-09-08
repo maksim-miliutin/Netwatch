@@ -108,4 +108,23 @@ chrome.storage.local.get('port').then((kept) =>
     list.href = 'http://127.0.0.1:' + (kept.port ?? 7373);
 });
 
+const pause = document.getElementById('pause') as HTMLButtonElement;
+
+function wording(asleep: boolean): void
+{
+    pause.textContent = asleep ? 'Start recording' : 'Pause recording';
+    document.body.classList.toggle('asleep', asleep);
+}
+
+chrome.storage.local.get('asleep').then((kept) => wording(kept.asleep === true));
+
+pause.addEventListener('click', async () =>
+{
+    const kept = await chrome.storage.local.get('asleep');
+    const asleep = kept.asleep !== true;
+
+    await chrome.storage.local.set({ asleep });
+    wording(asleep);
+});
+
 ask();

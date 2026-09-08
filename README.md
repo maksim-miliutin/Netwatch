@@ -84,6 +84,10 @@ second video opened beside it waits rather than taking over halfway through.
 Everything goes to loopback and nowhere else. The manifest says so, and the
 browser holds it to that.
 
+The popup has a Pause button. Nothing is written down while it is on — not
+everything watched is something to keep, and the only honest way to leave a
+thing out is not to send it in the first place.
+
 The port is 7373 unless the program was started with `-port`. The extension has
 a settings page for that — right click the icon, Options. Until it knew, a
 different port meant the extension reported into nothing and had no way to say

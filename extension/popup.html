@@ -24,10 +24,16 @@
     .times { display: flex; justify-content: space-between; color: #6b7178; font-size: 11px; }
 
     a { color: #6b7178; display: inline-block; margin-top: 12px; font-size: 12px; }
+
+    .stop { margin: 12px 0 0; }
+    .stop button { font: inherit; font-size: 12px; padding: 0.25rem 0.7rem; }
+
+    .asleep #state { opacity: 0.45; }
 </style>
 </head>
 <body>
     <div id="state"></div>
+    <p class="stop"><button id="pause">Pause recording</button></p>
     <a id="list" href="http://127.0.0.1:7373" target="_blank">Open the list</a>
     <script src="dist/popup.js"></script>
 </body>
