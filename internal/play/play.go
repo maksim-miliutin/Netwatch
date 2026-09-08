@@ -103,7 +103,7 @@ var services = []Service{
 		Shown: "Dzen",
 		Hosts: []string{"dzen.ru", "www.dzen.ru"},
 		Watching: func(u *url.URL) string {
-			return after(u.Path, "/video/watch/")
+			return piece(u.Path, "/video/watch/", "/shorts/")
 		},
 	},
 	{
@@ -111,7 +111,7 @@ var services = []Service{
 		Shown: "OK Video",
 		Hosts: []string{"ok.ru", "www.ok.ru", "m.ok.ru"},
 		Watching: func(u *url.URL) string {
-			return after(u.Path, "/video/")
+			return piece(u.Path, "/video/", "/live/")
 		},
 	},
 	{
@@ -276,7 +276,14 @@ var services = []Service{
 		Shown: "TikTok",
 		Hosts: []string{"tiktok.com", "www.tiktok.com", "vm.tiktok.com"},
 		Watching: func(u *url.URL) string {
-			return after(u.Path, "/video/")
+			// Nobody shares the long address. A short one is the whole of the
+			// path, and it stands in for an id: two of them are two videos
+			// even when neither says which.
+			if u.Host == "vm.tiktok.com" {
+				return strings.Trim(u.Path, "/")
+			}
+
+			return piece(u.Path, "/video/", "/t/")
 		},
 	},
 	{

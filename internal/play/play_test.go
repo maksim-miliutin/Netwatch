@@ -210,3 +210,36 @@ func TestRecognisesClips(t *testing.T) {
 		}
 	}
 }
+
+// Nobody shares the long address, and a short one went unwritten.
+func TestRecognisesShortLinksAndMoreShorts(t *testing.T) {
+	for address, wanted := range map[string]string{
+		"https://vm.tiktok.com/ZMabc123/":       "ZMabc123",
+		"https://www.tiktok.com/t/ZMabc123/":    "ZMabc123",
+		"https://www.tiktok.com/@who/video/712": "712",
+		"https://dzen.ru/shorts/abc":            "abc",
+		"https://dzen.ru/video/watch/def":       "def",
+		"https://ok.ru/live/123":                "123",
+		"https://ok.ru/video/456":               "456",
+	} {
+		one, ok := Recognise(address, "Something", time.Now())
+
+		if !ok || one.ID != wanted {
+			t.Errorf("%s: got %q %v", address, one.ID, ok)
+		}
+	}
+}
+
+// A playlist is a page somebody browsed, and an artist is a person.
+func TestStillIgnoresWhatIsNotAWatch(t *testing.T) {
+	for _, address := range []string{
+		"https://music.youtube.com/playlist?list=OLAK",
+		"https://open.spotify.com/artist/abc",
+		"https://dzen.ru/news",
+		"https://ok.ru/feed",
+	} {
+		if _, ok := Recognise(address, "Something", time.Now()); ok {
+			t.Errorf("%s counted as a watch", address)
+		}
+	}
+}
