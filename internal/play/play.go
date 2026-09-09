@@ -34,6 +34,10 @@ type Service struct {
 	// says out loud above the card.
 	Heard bool
 
+	// Kind is the sort of thing this is, for a page that lists them all: four
+	// short lists read, one long one does not.
+	Kind string
+
 	// Unnamed is a service whose address never says what is on. Yandex Music
 	// plays from a page called /home with the track in a bar at the foot of
 	// it; asking the address is asking the wrong one.
@@ -47,6 +51,7 @@ type Service struct {
 var services = []Service{
 	{
 		Name:  "youtube",
+		Kind:  "Video",
 		Shown: "YouTube",
 		Hosts: []string{"youtube.com", "www.youtube.com", "m.youtube.com", "youtu.be"},
 		Watching: func(u *url.URL) string {
@@ -65,6 +70,7 @@ var services = []Service{
 	},
 	{
 		Name:  "rutube",
+		Kind:  "Video",
 		Shown: "RuTube",
 		Hosts: []string{"rutube.ru", "www.rutube.ru"},
 		Watching: func(u *url.URL) string {
@@ -73,6 +79,7 @@ var services = []Service{
 	},
 	{
 		Name:    "yandex-music",
+		Kind:    "Music",
 		Shown:   "Yandex Music",
 		Heard:   true,
 		Unnamed: true,
@@ -84,6 +91,7 @@ var services = []Service{
 	},
 	{
 		Name:  "vk-video",
+		Kind:  "Video",
 		Shown: "VK Video",
 		Hosts: []string{"vk.com", "vkvideo.ru", "m.vk.com"},
 		Watching: func(u *url.URL) string {
@@ -93,6 +101,7 @@ var services = []Service{
 	},
 	{
 		Name:  "twitch",
+		Kind:  "Streams",
 		Shown: "Twitch",
 		Hosts: []string{"twitch.tv", "www.twitch.tv", "clips.twitch.tv"},
 		Watching: func(u *url.URL) string {
@@ -106,6 +115,7 @@ var services = []Service{
 	},
 	{
 		Name:  "dzen",
+		Kind:  "Video",
 		Shown: "Dzen",
 		Hosts: []string{"dzen.ru", "www.dzen.ru"},
 		Watching: func(u *url.URL) string {
@@ -114,6 +124,7 @@ var services = []Service{
 	},
 	{
 		Name:  "ok-video",
+		Kind:  "Video",
 		Shown: "OK Video",
 		Hosts: []string{"ok.ru", "www.ok.ru", "m.ok.ru"},
 		Watching: func(u *url.URL) string {
@@ -122,6 +133,7 @@ var services = []Service{
 	},
 	{
 		Name:  "vimeo",
+		Kind:  "Video",
 		Shown: "Vimeo",
 		Hosts: []string{"vimeo.com", "www.vimeo.com", "player.vimeo.com"},
 		Watching: func(u *url.URL) string {
@@ -130,6 +142,7 @@ var services = []Service{
 	},
 	{
 		Name:  "dailymotion",
+		Kind:  "Video",
 		Shown: "Dailymotion",
 		Hosts: []string{"dailymotion.com", "www.dailymotion.com"},
 		Watching: func(u *url.URL) string {
@@ -138,6 +151,7 @@ var services = []Service{
 	},
 	{
 		Name:  "coub",
+		Kind:  "Video",
 		Shown: "Coub",
 		Hosts: []string{"coub.com", "www.coub.com"},
 		Watching: func(u *url.URL) string {
@@ -146,6 +160,7 @@ var services = []Service{
 	},
 	{
 		Name:  "netflix",
+		Kind:  "Films",
 		Shown: "Netflix",
 		Hosts: []string{"netflix.com", "www.netflix.com"},
 		Watching: func(u *url.URL) string {
@@ -154,6 +169,7 @@ var services = []Service{
 	},
 	{
 		Name:  "kinopoisk",
+		Kind:  "Films",
 		Shown: "Kinopoisk",
 		Hosts: []string{"hd.kinopoisk.ru", "kinopoisk.ru", "www.kinopoisk.ru"},
 		Watching: func(u *url.URL) string {
@@ -162,6 +178,7 @@ var services = []Service{
 	},
 	{
 		Name:  "okko",
+		Kind:  "Films",
 		Shown: "Okko",
 		Hosts: []string{"okko.tv", "www.okko.tv"},
 		Watching: func(u *url.URL) string {
@@ -170,6 +187,7 @@ var services = []Service{
 	},
 	{
 		Name:  "ivi",
+		Kind:  "Films",
 		Shown: "ivi",
 		Hosts: []string{"ivi.ru", "www.ivi.ru"},
 		Watching: func(u *url.URL) string {
@@ -178,6 +196,7 @@ var services = []Service{
 	},
 	{
 		Name:  "wink",
+		Kind:  "Films",
 		Shown: "Wink",
 		Hosts: []string{"wink.ru", "www.wink.ru"},
 		Watching: func(u *url.URL) string {
@@ -186,6 +205,7 @@ var services = []Service{
 	},
 	{
 		Name:  "premier",
+		Kind:  "Films",
 		Shown: "Premier",
 		Hosts: []string{"premier.one", "www.premier.one"},
 		Watching: func(u *url.URL) string {
@@ -194,6 +214,7 @@ var services = []Service{
 	},
 	{
 		Name:  "kick",
+		Kind:  "Streams",
 		Shown: "Kick",
 		Hosts: []string{"kick.com", "www.kick.com"},
 		Watching: func(u *url.URL) string {
@@ -206,6 +227,7 @@ var services = []Service{
 	},
 	{
 		Name:  "vkplay",
+		Kind:  "Streams",
 		Shown: "VK Play",
 		Hosts: []string{"live.vkplay.ru", "vkplay.live"},
 		Watching: func(u *url.URL) string {
@@ -214,6 +236,7 @@ var services = []Service{
 	},
 	{
 		Name:  "youtube-music",
+		Kind:  "Music",
 		Shown: "YouTube Music",
 		Heard: true,
 		Hosts: []string{"music.youtube.com"},
@@ -223,6 +246,7 @@ var services = []Service{
 	},
 	{
 		Name:  "spotify",
+		Kind:  "Music",
 		Shown: "Spotify",
 		Heard: true,
 		Hosts: []string{"open.spotify.com", "play.spotify.com"},
@@ -232,6 +256,7 @@ var services = []Service{
 	},
 	{
 		Name:  "soundcloud",
+		Kind:  "Music",
 		Shown: "SoundCloud",
 		Heard: true,
 		Hosts: []string{"soundcloud.com", "m.soundcloud.com", "on.soundcloud.com"},
@@ -243,6 +268,7 @@ var services = []Service{
 	},
 	{
 		Name:  "apple-music",
+		Kind:  "Music",
 		Shown: "Apple Music",
 		Heard: true,
 		Hosts: []string{"music.apple.com"},
@@ -252,6 +278,7 @@ var services = []Service{
 	},
 	{
 		Name:  "deezer",
+		Kind:  "Music",
 		Shown: "Deezer",
 		Heard: true,
 		Hosts: []string{"deezer.com", "www.deezer.com"},
@@ -261,6 +288,7 @@ var services = []Service{
 	},
 	{
 		Name:  "zvuk",
+		Kind:  "Music",
 		Shown: "Zvuk",
 		Heard: true,
 		Hosts: []string{"zvuk.com", "www.zvuk.com", "sber-zvuk.com"},
@@ -270,6 +298,7 @@ var services = []Service{
 	},
 	{
 		Name:  "mixcloud",
+		Kind:  "Music",
 		Shown: "Mixcloud",
 		Heard: true,
 		Hosts: []string{"mixcloud.com", "www.mixcloud.com"},
@@ -279,6 +308,7 @@ var services = []Service{
 	},
 	{
 		Name:  "tiktok",
+		Kind:  "Video",
 		Shown: "TikTok",
 		Hosts: []string{"tiktok.com", "www.tiktok.com", "vm.tiktok.com"},
 		Watching: func(u *url.URL) string {
@@ -292,6 +322,7 @@ var services = []Service{
 	},
 	{
 		Name:  "bilibili",
+		Kind:  "Video",
 		Shown: "Bilibili",
 		Hosts: []string{"bilibili.com", "www.bilibili.com", "m.bilibili.com"},
 		Watching: func(u *url.URL) string {
@@ -300,6 +331,7 @@ var services = []Service{
 	},
 	{
 		Name:  "crunchyroll",
+		Kind:  "Films",
 		Shown: "Crunchyroll",
 		Hosts: []string{"crunchyroll.com", "www.crunchyroll.com"},
 		Watching: func(u *url.URL) string {
@@ -308,6 +340,7 @@ var services = []Service{
 	},
 	{
 		Name:  "disney-plus",
+		Kind:  "Films",
 		Shown: "Disney+",
 		Hosts: []string{"disneyplus.com", "www.disneyplus.com"},
 		Watching: func(u *url.URL) string {
@@ -316,6 +349,7 @@ var services = []Service{
 	},
 	{
 		Name:  "max",
+		Kind:  "Films",
 		Shown: "Max",
 		Hosts: []string{"max.com", "www.max.com", "play.max.com"},
 		Watching: func(u *url.URL) string {
@@ -324,6 +358,7 @@ var services = []Service{
 	},
 	{
 		Name:  "prime-video",
+		Kind:  "Films",
 		Shown: "Prime Video",
 		Hosts: []string{"primevideo.com", "www.primevideo.com"},
 		Watching: func(u *url.URL) string {
@@ -332,6 +367,7 @@ var services = []Service{
 	},
 	{
 		Name:  "apple-tv",
+		Kind:  "Films",
 		Shown: "Apple TV+",
 		Hosts: []string{"tv.apple.com"},
 		Watching: func(u *url.URL) string {
@@ -340,6 +376,7 @@ var services = []Service{
 	},
 	{
 		Name:  "hulu",
+		Kind:  "Films",
 		Shown: "Hulu",
 		Hosts: []string{"hulu.com", "www.hulu.com"},
 		Watching: func(u *url.URL) string {
@@ -348,6 +385,7 @@ var services = []Service{
 	},
 	{
 		Name:  "nebula",
+		Kind:  "Video",
 		Shown: "Nebula",
 		Hosts: []string{"nebula.tv", "www.nebula.tv"},
 		Watching: func(u *url.URL) string {
@@ -356,6 +394,7 @@ var services = []Service{
 	},
 	{
 		Name:  "odysee",
+		Kind:  "Video",
 		Shown: "Odysee",
 		Hosts: []string{"odysee.com", "www.odysee.com"},
 		Watching: func(u *url.URL) string {
@@ -364,6 +403,7 @@ var services = []Service{
 	},
 	{
 		Name:  "nicovideo",
+		Kind:  "Video",
 		Shown: "Niconico",
 		Hosts: []string{"nicovideo.jp", "www.nicovideo.jp", "sp.nicovideo.jp"},
 		Watching: func(u *url.URL) string {
@@ -372,6 +412,7 @@ var services = []Service{
 	},
 	{
 		Name:  "trovo",
+		Kind:  "Streams",
 		Shown: "Trovo",
 		Hosts: []string{"trovo.live", "www.trovo.live"},
 		Watching: func(u *url.URL) string {
@@ -388,6 +429,20 @@ func Shown(name string) string {
 	}
 
 	return name
+}
+
+// Kinds are the sorts of service there are, in the order a page should list
+// them: what people watch most first.
+func Kinds() []string {
+	return []string{"Video", "Streams", "Films", "Music"}
+}
+
+func Kind(name string) string {
+	if service, ok := find(name); ok {
+		return service.Kind
+	}
+
+	return ""
 }
 
 func Heard(name string) bool {

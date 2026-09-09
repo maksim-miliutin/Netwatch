@@ -124,9 +124,11 @@
     .join button { font: inherit; font-size: var(--small); padding: var(--step) 0.8rem; }
     .said { color: var(--ink); font-size: var(--quiet); margin: var(--tight) 0 0; }
 
-    .card { margin: var(--far) 0 0; }
-    .card label { display: inline-block; margin: 0 var(--gap) var(--step) 0;
-                  font-size: var(--quiet); }
+    .card { margin: var(--apart) 0 0; }
+    .card .sort { color: var(--faint); font-size: var(--small);
+                  margin: var(--gap) 0 var(--step); }
+    .ticks { display: flex; flex-wrap: wrap; column-gap: var(--gap); }
+    .card label { font-size: var(--quiet); white-space: nowrap; }
     .card button { margin-top: var(--tight); font: inherit; font-size: var(--small);
                    padding: var(--step) 0.9rem; }
 
@@ -265,23 +267,27 @@
 
     {{if .Said}}<p class="said">{{.Said}}</p>{{end}}
 
-    {{if .Choices}}
     <h2 class="apart">On the card</h2>
-    <p class="quiet">Unticked services stay out of Discord. The list keeps them
-    either way.</p>
+    <p class="quiet">Everything netwatch knows how to recognise. Unticked ones
+    stay out of Discord; the list keeps them either way.</p>
 
     <form class="card" method="post" action="/api/quiet">
         {{range .Choices}}
-        <label>
-            <input type="hidden" name="service" value="{{.Name}}">
-            <input type="checkbox" name="show" value="{{.Name}}"{{if .Shown}} checked{{end}}>
-            {{.Name}}
-        </label>
+        <p class="sort">{{.Kind}}</p>
+
+        <div class="ticks">
+            {{range .Choices}}
+            <label>
+                <input type="hidden" name="service" value="{{.Name}}">
+                <input type="checkbox" name="show" value="{{.Name}}"{{if .Ticked}} checked{{end}}>
+                {{.Shown}}
+            </label>
+            {{end}}
+        </div>
         {{end}}
 
         <div><button>Save</button></div>
     </form>
-    {{end}}
 
     <form method="post" action="/api/quit">
         <button class="stop">Quit netwatch</button>

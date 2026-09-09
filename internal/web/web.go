@@ -11,7 +11,6 @@ import (
 	"net"
 	"net/http"
 	"net/url"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -422,36 +421,42 @@ func (s *Server) quit(w http.ResponseWriter, r *http.Request) {
 }
 
 type Choice struct {
-	Name  string
-	Shown bool
+	Name   string
+	Shown  string
+	Ticked bool
 }
 
-// Only the services somebody has actually watched, plus whatever is hidden.
-// All thirty-odd would be a wall of boxes for services nobody here uses.
-func (s *Server) choices(plays []play.Play) []Choice {
-	seen := map[string]bool{}
+// A Sort is one kind of service with its own heading. All thirty-odd in one
+// list is a wall; four short lists are read.
+type Sort struct {
+	Kind    string
+	Choices []Choice
+}
 
-	for _, one := range plays {
-		seen[one.Service] = true
+func (s *Server) choices() []Sort {
+	var sorts []Sort
+
+	for _, kind := range play.Kinds() {
+		one := Sort{Kind: kind}
+
+		for _, name := range play.Services() {
+			if play.Kind(name) != kind {
+				continue
+			}
+
+			one.Choices = append(one.Choices, Choice{
+				Name:   name,
+				Shown:  play.Shown(name),
+				Ticked: !s.Quiet.Hidden(name),
+			})
+		}
+
+		if len(one.Choices) > 0 {
+			sorts = append(sorts, one)
+		}
 	}
 
-	for _, name := range s.Quiet.Names() {
-		seen[name] = true
-	}
-
-	names := make([]string, 0, len(seen))
-	for name := range seen {
-		names = append(names, name)
-	}
-
-	sort.Strings(names)
-
-	choices := make([]Choice, 0, len(names))
-	for _, name := range names {
-		choices = append(choices, Choice{Name: name, Shown: !s.Quiet.Hidden(name)})
-	}
-
-	return choices
+	return sorts
 }
 
 func (s *Server) hiding(w http.ResponseWriter, r *http.Request) {
@@ -696,10 +701,7 @@ func (s *Server) show(w http.ResponseWriter, r *http.Request) {
 	working := s.working(plays)
 	fresh := len(plays) == 0
 
-	// Before the list is cut down or searched through: a service watched last
-	// month still deserves its tick box, and a search for one service should
-	// not take the boxes off all the others.
-	choices := s.choices(plays)
+	choices := s.choices()
 
 	// A month of watching is a few hundred lines, and a year is thousands. The
 	// only way back to a particular one is its name.
@@ -744,7 +746,7 @@ func (s *Server) show(w http.ResponseWriter, r *http.Request) {
 		Fresh   bool
 		Card    string
 		Said    string
-		Choices []Choice
+		Choices []Sort
 	}{s.onNow(), byDay(plays, time.Now()), total, title, elsewhere(next, find),
 		named, r.URL.Query().Get("span"), more, find, working, fresh, s.Id,
 		s.told(), choices})
