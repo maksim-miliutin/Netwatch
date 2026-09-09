@@ -307,3 +307,38 @@ func TestDoesNotTakeThePageAtItsWordEverywhere(t *testing.T) {
 		t.Error("made a play out of a search page")
 	}
 }
+
+// A site somebody adds brings no rule for reading its addresses, so it goes in
+// as one whose address never says what is on.
+func TestTakesAServiceSomebodyAdds(t *testing.T) {
+	Add("plvideo.example", "Plvideo")
+
+	one, ok := Reported("https://plvideo.example/watch/abc", "Нечто", time.Now())
+	if !ok || one.Service != "plvideo.example" || one.Title != "Нечто" {
+		t.Fatalf("got %+v %v", one, ok)
+	}
+
+	// www is the same site, and adding it twice is adding it once.
+	if _, ok := Reported("https://www.plvideo.example/x", "Нечто", time.Now()); !ok {
+		t.Error("did not know the same site with www in front")
+	}
+
+	Add("plvideo.example", "Something else")
+
+	if Shown("plvideo.example") != "Plvideo" {
+		t.Errorf("the second adding overwrote the first")
+	}
+
+	if Kind("plvideo.example") != Yours {
+		t.Errorf("landed in %q", Kind("plvideo.example"))
+	}
+}
+
+func TestListsTheKindsSomebodyAddedTo(t *testing.T) {
+	Add("another.example", "Another")
+
+	kinds := Kinds()
+	if kinds[len(kinds)-1] != Yours {
+		t.Errorf("got %v", kinds)
+	}
+}

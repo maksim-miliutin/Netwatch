@@ -95,50 +95,66 @@ so.
 
 ## The card
 
-The card is the one thing here that leaves the machine, so it is turned on by
-hand.
+What plays goes on your Discord profile, where friends see it. It works out of
+the box: the application netwatch talks to is named in `main.go`, and Rich
+Presence does not care who owns that number.
 
-1. `discord.com/developers/applications` → New Application. The name given
-   there is what Discord writes above the card.
-2. Rich Presence → Art Assets → upload the tiles from `art/`. The name of a
-   picture has to match the name of a service: `youtube`, `spotify`,
-   `kinopoisk`. Discord takes a few minutes to notice new ones.
-3. General Information → Application ID. Paste it into the Discord box at the
-   foot of the page and press Connect.
+Discord itself has to be the desktop one and open. In its settings, Activity →
+"Display current activity as a status message" has to be on.
 
-The number is remembered beside the list, so it is asked for once. Disconnect
-puts it back down. `-discord 1234567890` does the same from a terminal, for
-anybody who has one — a program started by double clicking is handed no flags,
-which is why the box exists.
-
-The card carries the name, the channel, a bar and a button to the address.
+The card carries the name, whose it is, a bar and a button to the address.
 Nothing else is sent: a card has no history, only what is playing this second.
-Music says "listening", everything else says "watching".
+Music says "listening", everything else says "watching". Discord can be closed,
+opened later, restarted — netwatch connects when one appears, and takes the
+card down when the tab goes.
 
-Discord can be closed, opened later, restarted — netwatch connects when one
-appears, and takes the card down when the tab goes.
+A number of your own only changes the name Discord writes above the card and
+the pictures on it. There is a box for it at the foot of the page, under
+Settings. `-discord 1234567890` does the same from a terminal, and `-` there
+puts it back down.
 
-The tiles are netwatch's own, not the services' marks: somebody else's logo in
-your application is still somebody else's logo. Whoever holds the right to the
-real ones can upload those under the same names.
+The pictures live in the application rather than in this program: Rich Presence
+shows what was uploaded to it and nothing from elsewhere. Rich Presence → Art
+Assets → upload the tiles from `art/`, each named after its service —
+`youtube`, `spotify`, `kinopoisk`. Discord takes a few minutes to notice new
+ones. Until then the card carries a question mark.
+
+Those tiles are netwatch's own, not the services' marks: somebody else's logo
+in your application is still somebody else's logo.
 
 ## What friends see
 
-The tick boxes at the foot of the page decide which services reach the card.
-Unticked ones are still written down — the list is yours, the card is not.
+The tick boxes at the foot of the page decide which services reach the card,
+sorted into video, streams, films and music. Unticked ones are still written
+down — the list is yours, the card is not.
 
 What is hidden is what is kept, in `.netwatch/quiet`, one name to a line. A
 service added to the program later turns up on the card by itself rather than
 going missing until somebody notices.
 
-## Adding a service
+## Adding a site of your own
 
-One entry in the `services` list in `internal/play/play.go`:
+There is a box at the foot of the page for anything with a video or a sound on
+it. netwatch cannot read a strange address, so it asks the page instead — the
+same way it knows what Yandex Music is playing, since that one keeps the track
+out of the address as well.
+
+The browser has to be asked separately, and only you can ask it: right click
+the netwatch icon, Options, then Allow beside the site. Chrome does not let a
+program give itself the run of a new site, and it is right not to.
+
+Sites added this way live in `.netwatch/services`, a host and a name to a line.
+
+## Adding a service to the program
+
+The box on the page is for one machine. A service that belongs in netwatch
+itself is one entry in the `services` list in `internal/play/play.go`:
 
 ```go
 {
     Name:  "goodgame",
     Shown: "GoodGame",
+    Kind:  "Streams",
     Hosts: []string{"goodgame.ru"},
     Watching: func(u *url.URL) string {
         return after(u.Path, "/channel/")
@@ -149,8 +165,12 @@ One entry in the `services` list in `internal/play/play.go`:
 Nothing else in the program: no branch in a `switch`, no interface, no
 registration. `Watching` answers what is being watched at that address, and an
 empty string when the service's page is not a watch at all. A search on YouTube
-is still YouTube and still not a video. `Shown` is the name people read, and
-`Heard: true` is for what somebody listens to rather than watches.
+is still YouTube and still not a video.
+
+`Shown` is the name people read, `Kind` is which of the four lists it joins,
+`Heard: true` is for what somebody listens to rather than watches, and
+`Unnamed: true` is for a player that keeps the track out of the address
+altogether.
 
 One place outside the program: the address goes into `content_scripts` in the
 extension manifest. A manifest is read before the program starts and cannot ask
@@ -170,6 +190,10 @@ a list they stop keeping.
 `plays.csv` takes the whole of it away as a spreadsheet. The file itself is a
 line of JSON per play, which is honest and unreadable by anything already on
 the machine.
+
+The page follows the dark setting of the system, and refreshes itself every ten
+seconds — until anything on it is touched. A page that reloads while somebody
+is ticking boxes has thrown their work away.
 
 ## How long
 

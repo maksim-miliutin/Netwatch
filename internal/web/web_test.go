@@ -602,3 +602,33 @@ func TestTakesASiteSomebodyAdds(t *testing.T) {
 		t.Errorf("got %+v %v", one, ok)
 	}
 }
+
+// The extension asks for the sites somebody added, because the browser has
+// never been told about those and the built in ones are in the manifest.
+func TestTellsTheExtensionAboutAddedSites(t *testing.T) {
+	handler := serving(t)
+
+	empty := httptest.NewRecorder()
+	handler.ServeHTTP(empty, httptest.NewRequest("GET", "/api/mine", nil))
+
+	if strings.TrimSpace(empty.Body.String()) != "{}" {
+		t.Errorf("a fresh machine offers %s", empty.Body)
+	}
+
+	body := strings.NewReader("host=some.example&shown=Some")
+
+	request := httptest.NewRequest("POST", "/api/services", body)
+	request.Host = "127.0.0.1:7373"
+	request.RemoteAddr = "127.0.0.1:5000"
+	request.Header.Set("content-type", "application/x-www-form-urlencoded")
+	request.Header.Set("origin", "http://127.0.0.1:7373")
+
+	Near(handler).ServeHTTP(httptest.NewRecorder(), request)
+
+	listed := httptest.NewRecorder()
+	handler.ServeHTTP(listed, httptest.NewRequest("GET", "/api/mine", nil))
+
+	if !strings.Contains(listed.Body.String(), `"some.example":"Some"`) {
+		t.Errorf("got %s", listed.Body)
+	}
+}
