@@ -413,3 +413,24 @@ func TestForgettingWhatIsNotThereChangesNothing(t *testing.T) {
 		t.Errorf("left %d", len(left))
 	}
 }
+
+// The newest first order is kept as well, and a write throws it away.
+func TestKeepsTheOrderItSortedUntilSomethingChanges(t *testing.T) {
+	store := fresh(t)
+	now := time.Now().UTC()
+
+	_ = store.Add(one("a", now))
+	first, _ := store.All()
+
+	again, _ := store.All()
+	if len(again) != len(first) {
+		t.Fatalf("got %d then %d", len(first), len(again))
+	}
+
+	_ = store.Add(one("b", now.Add(time.Minute)))
+
+	after, _ := store.All()
+	if len(after) != 2 || after[0].ID != "b" {
+		t.Errorf("got %+v, wanted b first", after)
+	}
+}

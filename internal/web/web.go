@@ -696,6 +696,11 @@ func (s *Server) show(w http.ResponseWriter, r *http.Request) {
 	working := s.working(plays)
 	fresh := len(plays) == 0
 
+	// Before the list is cut down or searched through: a service watched last
+	// month still deserves its tick box, and a search for one service should
+	// not take the boxes off all the others.
+	choices := s.choices(plays)
+
 	// A month of watching is a few hundred lines, and a year is thousands. The
 	// only way back to a particular one is its name.
 	find := strings.TrimSpace(r.URL.Query().Get("find"))
@@ -742,7 +747,7 @@ func (s *Server) show(w http.ResponseWriter, r *http.Request) {
 		Choices []Choice
 	}{s.onNow(), byDay(plays, time.Now()), total, title, elsewhere(next, find),
 		named, r.URL.Query().Get("span"), more, find, working, fresh, s.Id,
-		s.told(), s.choices(plays)})
+		s.told(), choices})
 }
 
 func answer(w http.ResponseWriter, body any) {

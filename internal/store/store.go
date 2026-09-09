@@ -23,9 +23,10 @@ type Store struct {
 
 	// What was read last, and what the file looked like then. Nothing else
 	// writes here, and noticing a hand edit costs one stat.
-	plays []play.Play
-	when  time.Time
-	size  int64
+	plays  []play.Play
+	newest []play.Play
+	when   time.Time
+	size   int64
 
 	mu sync.Mutex
 }
@@ -134,14 +135,22 @@ func (s *Store) All() ([]play.Play, error) {
 		return nil, err
 	}
 
-	// Sorted on a copy. In place it would turn what is kept back to front, and
-	// the next Add would take the oldest play for the newest.
+	if s.newest != nil {
+		return s.newest, nil
+	}
+
+	// Sorted on a copy: in place it would turn what is kept back to front, and
+	// the next Add would take the oldest play for the newest. Kept, because a
+	// page that redraws itself every ten seconds would otherwise copy and sort
+	// a year of plays every ten seconds. Whoever gets it must not write to it.
 	newest := make([]play.Play, len(plays))
 	copy(newest, plays)
 
 	sort.Slice(newest, func(a, b int) bool {
 		return newest[a].At.After(newest[b].At)
 	})
+
+	s.newest = newest
 
 	return newest, nil
 }
@@ -281,6 +290,8 @@ func (s *Store) read() ([]play.Play, error) {
 		return s.plays, nil
 	}
 
+	s.newest = nil
+
 	file, err := os.Open(s.file)
 	if err != nil {
 		return nil, err
@@ -313,6 +324,8 @@ func (s *Store) read() ([]play.Play, error) {
 // kept remembers what was just written, so that the next read does not go back
 // to the disk for a file this only just finished with.
 func (s *Store) kept(plays []play.Play) {
+	s.newest = nil
+
 	stat, err := os.Stat(s.file)
 	if err != nil {
 		s.plays = nil
