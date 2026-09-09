@@ -163,7 +163,19 @@ func main() {
 		}
 	}
 
-	log.Fatal(http.Serve(ear, web.Near(server.Routes())))
+	go func() {
+		log.Fatal(http.Serve(ear, web.Near(server.Routes())))
+	}()
+
+	// The message loop wants the thread it was started on, and holds it until
+	// somebody chooses Quit.
+	tray("http://"+address, func() {
+		if err := window("http://" + address); err != nil {
+			note(written, err.Error())
+		}
+	}, func() {
+		note(written, "netwatch has stopped.")
+	})
 }
 
 func bring(kept *store.Store, from string) error {
