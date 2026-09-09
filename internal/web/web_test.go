@@ -632,3 +632,171 @@ func TestTellsTheExtensionAboutAddedSites(t *testing.T) {
 		t.Errorf("got %s", listed.Body)
 	}
 }
+
+// Quitting is a write, so it goes through the same door as the rest: off this
+// page or not at all.
+func TestQuitsOnlyWhenAskedFromThePage(t *testing.T) {
+	stopped := make(chan bool, 1)
+
+	kept, err := store.Open(filepath.Join(t.TempDir(), "plays.jsonl"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	server := &Server{
+		Store:    kept,
+		Watching: now.New(),
+		Quiet:    hushed(t),
+		Mine:     own(t),
+		Quitting: func() { stopped <- true },
+	}
+
+	elsewhere := asking(t, "/api/quit", "", "https://evil.example")
+
+	refused := httptest.NewRecorder()
+	Near(server.Routes()).ServeHTTP(refused, elsewhere)
+
+	if refused.Code != http.StatusUnsupportedMediaType {
+		t.Errorf("a page elsewhere got %d", refused.Code)
+	}
+
+	answer := httptest.NewRecorder()
+	Near(server.Routes()).ServeHTTP(answer, asking(t, "/api/quit", "", ""))
+
+	if answer.Code != http.StatusOK {
+		t.Fatalf("got %d %s", answer.Code, answer.Body)
+	}
+
+	if !strings.Contains(answer.Body.String(), "netwatch has stopped") {
+		t.Errorf("answered with %s", answer.Body)
+	}
+
+	select {
+	case <-stopped:
+	case <-time.After(2 * time.Second):
+		t.Error("said it was stopping and did not")
+	}
+}
+
+// The box for a Discord application id. A program started by double clicking
+// is handed no flags, so this is the only way in for most people.
+func TestTakesAnApplicationIdFromThePage(t *testing.T) {
+	var joined []string
+
+	kept, err := store.Open(filepath.Join(t.TempDir(), "plays.jsonl"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	server := &Server{
+		Store:    kept,
+		Watching: now.New(),
+		Quiet:    hushed(t),
+		Mine:     own(t),
+		Joining:  func(id string) error { joined = append(joined, id); return nil },
+	}
+
+	answer := httptest.NewRecorder()
+	Near(server.Routes()).ServeHTTP(answer, asking(t, "/api/discord", "id=424242", ""))
+
+	if answer.Code != http.StatusSeeOther {
+		t.Fatalf("got %d %s", answer.Code, answer.Body)
+	}
+
+	if server.Id != "424242" {
+		t.Errorf("the page still shows %q", server.Id)
+	}
+
+	// A dash puts it back down, and the page should stop showing a number.
+	Near(server.Routes()).ServeHTTP(httptest.NewRecorder(), asking(t, "/api/discord", "id=-", ""))
+
+	if server.Id != "" {
+		t.Errorf("still on %q after being turned off", server.Id)
+	}
+
+	if len(joined) != 2 || joined[0] != "424242" || joined[1] != "-" {
+		t.Errorf("the card heard %v", joined)
+	}
+}
+
+// A window of its own takes its icon from the page, and a page with none gets
+// the globe a browser hands out to strangers.
+func TestHandsOverTheMark(t *testing.T) {
+	answer := httptest.NewRecorder()
+	serving(t).ServeHTTP(answer, httptest.NewRequest("GET", "/icon.png", nil))
+
+	if answer.Code != http.StatusOK || answer.Body.Len() < 500 {
+		t.Errorf("got %d and %d bytes", answer.Code, answer.Body.Len())
+	}
+
+	if kind := answer.Header().Get("content-type"); kind != "image/png" {
+		t.Errorf("came back as %q", kind)
+	}
+}
+
+// A form off this page, said the way a browser says it.
+func asking(t *testing.T, where, body, from string) *http.Request {
+	t.Helper()
+
+	request := httptest.NewRequest("POST", where, strings.NewReader(body))
+	request.Host = "127.0.0.1:7373"
+	request.RemoteAddr = "127.0.0.1:5000"
+	request.Header.Set("content-type", "application/x-www-form-urlencoded")
+
+	if from == "" {
+		from = "http://127.0.0.1:7373"
+	}
+
+	request.Header.Set("origin", from)
+
+	return request
+}
+
+// A list keeps itself only while something is keeping it, so the button that
+// arranges that has to work off this page and nowhere else.
+func TestTurnsStartingWithTheMachineOnAndOff(t *testing.T) {
+	var asked []bool
+
+	kept, err := store.Open(filepath.Join(t.TempDir(), "plays.jsonl"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	server := &Server{
+		Store:    kept,
+		Watching: now.New(),
+		Quiet:    hushed(t),
+		Mine:     own(t),
+		Starting: func() bool { return len(asked) > 0 && asked[len(asked)-1] },
+		Starts:   func(with bool) error { asked = append(asked, with); return nil },
+	}
+
+	Near(server.Routes()).ServeHTTP(httptest.NewRecorder(),
+		asking(t, "/api/start", "with=yes", ""))
+
+	if len(asked) != 1 || !asked[0] {
+		t.Fatalf("heard %v", asked)
+	}
+
+	// The page now offers the other way round.
+	page := httptest.NewRecorder()
+	server.Routes().ServeHTTP(page, httptest.NewRequest("GET", "/", nil))
+
+	if !strings.Contains(page.Body.String(), "Do not start with Windows") {
+		t.Error("still offering to start with Windows after it was arranged")
+	}
+
+	Near(server.Routes()).ServeHTTP(httptest.NewRecorder(),
+		asking(t, "/api/start", "with=no", ""))
+
+	if len(asked) != 2 || asked[1] {
+		t.Errorf("heard %v", asked)
+	}
+}
+
+// Where the question has no answer, nothing is offered.
+func TestOffersNoStartingWhereThereIsNone(t *testing.T) {
+	if page := shown(t, serving(t)); strings.Contains(page, "Start with Windows") {
+		t.Error("offered something it cannot do")
+	}
+}

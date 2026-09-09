@@ -8,7 +8,6 @@ const SITES = 'YouTube|RUTUBE|Rutube|VK Видео|ВКонтакте|Twitch|Д�
 
 const TAIL = new RegExp(`\\s*[-—|]\\s*(${SITES})\\s*$`);
 
-// What a browser puts in front of a tab title when messages are waiting.
 const COUNTED = /^\(\d+\)\s*/;
 
 function named(): { title: string; by: string }
@@ -76,7 +75,6 @@ function say(): void
             paused: one.paused,
             position: one.currentTime,
 
-            // A stream says its length with an Infinity.
             length: Number.isFinite(one.duration) ? one.duration : 0,
         },
     });
@@ -88,7 +86,6 @@ for (const event of ['play', 'pause', 'seeked', 'ended'])
     document.addEventListener(event, say, true);
 }
 
-// A page left is over at once; the tick would find it half a minute later.
 window.addEventListener('pagehide', () => send({ gone: true }));
 
 setInterval(say, EVERY_MS);

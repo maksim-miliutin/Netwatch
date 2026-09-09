@@ -17,12 +17,8 @@ import (
 )
 
 type Store struct {
-	// Opened for every write rather than held: this program spends its life
-	// idle, and a handle held for hours outlives the disk it points at.
 	file string
 
-	// What was read last, and what the file looked like then. Nothing else
-	// writes here, and noticing a hand edit costs one stat.
 	plays  []play.Play
 	newest []play.Play
 	when   time.Time
@@ -78,7 +74,6 @@ func (s *Store) Add(one play.Play) error {
 		return err
 	}
 
-	// What is kept was just brought up to date by close, if it ran at all.
 	s.kept(append(s.plays, one))
 
 	return nil
@@ -191,8 +186,6 @@ func (s *Store) Stop(at time.Time) error {
 	return s.close(plays[len(plays)-1], at)
 }
 
-// Ends is how long a play may be counted for. A tab left open overnight was
-// not nine hours of watching, and a list that says so is worse than silence.
 const Ends = 3 * time.Hour
 
 // close writes down how long the play before this one lasted. The file is
@@ -212,8 +205,6 @@ func (s *Store) close(last play.Play, at time.Time) error {
 		return err
 	}
 
-	// On a copy: a rewrite that fails would otherwise leave what is kept
-	// saying closed while the file still says open.
 	closed := make([]play.Play, len(plays))
 	copy(closed, plays)
 
@@ -227,7 +218,6 @@ func (s *Store) close(last play.Play, at time.Time) error {
 }
 
 func (s *Store) rewrite(plays []play.Play) error {
-	// Written beside and moved into place: half a file costs everything.
 	temporary := s.file + ".new"
 
 	file, err := os.OpenFile(temporary, os.O_TRUNC|os.O_CREATE|os.O_WRONLY, 0o600)
@@ -299,7 +289,6 @@ func (s *Store) read() ([]play.Play, error) {
 	for lines.Scan() {
 		var one play.Play
 
-		// One bad line should not cost somebody the rest of their history.
 		if err := json.Unmarshal(lines.Bytes(), &one); err != nil {
 			continue
 		}

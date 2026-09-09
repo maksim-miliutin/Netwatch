@@ -21,7 +21,6 @@ type Total struct {
 	Seconds  int       `json:"seconds"`
 	Services []Service `json:"services"`
 
-	// How many were never closed, so a small total is not read as a quiet week.
 	Open int `json:"open"`
 }
 

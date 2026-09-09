@@ -28,9 +28,6 @@ import (
 	"netwatch/internal/web"
 )
 
-// The application everybody who runs this uses, unless they put in their own.
-// Rich Presence does not care who owns the number: it decides the name Discord
-// writes above the card and where the pictures come from, and nothing else.
 const Application = "1546852021934751804"
 
 func main() {
@@ -108,6 +105,8 @@ func main() {
 		Says:     said.last,
 		Quitting: func() { os.Exit(0) },
 		Id:       id,
+		Starting: starting,
+		Starts:   start,
 		Joining: func(asked string) error {
 			kept, err := remembered(asked, filepath.Dir(where))
 			if err != nil {
@@ -121,12 +120,8 @@ func main() {
 	}
 	address := fmt.Sprintf("127.0.0.1:%d", *port)
 
-	// The port is taken before anything is said about it. Saying it first and
-	// failing after leaves two cheerful lines above the reason nothing works.
 	ear, err := net.Listen("tcp", address)
 	if err != nil {
-		// Already running: somebody who closed the window wants it back, not two
-		// of these.
 		if awake(address) {
 			note(written, "netwatch is already running.")
 
@@ -145,8 +140,6 @@ func main() {
 	note(written, fmt.Sprintf("netwatch is running. Open http://%s in a browser.", address))
 	note(written, fmt.Sprintf("The list is kept in %s and goes nowhere else.", where))
 
-	// The card is the one thing here that leaves the machine, so it runs only
-	// for somebody who went and got an application id for it.
 	if id != "" {
 		showing.to(id)
 	}
@@ -224,9 +217,6 @@ func note(written io.Writer, text string) {
 	}
 }
 
-// A card that can be turned on and off while running. Until this, the id came
-// from a flag, and a program started by double clicking is handed no flags at
-// all: the exe somebody downloads could not be joined to Discord by any means.
 type card struct {
 	mu   sync.Mutex
 	stop context.CancelFunc
@@ -279,7 +269,6 @@ func (l *latest) last() string {
 func remembered(asked, dir string) (string, error) {
 	file := filepath.Join(dir, "discord")
 
-	// An id is a number, so the word cannot be one.
 	if asked == "off" || asked == "-" {
 		if err := os.Remove(file); err != nil && !os.IsNotExist(err) {
 			return "", err

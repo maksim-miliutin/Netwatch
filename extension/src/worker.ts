@@ -7,12 +7,8 @@ async function netwatch(): Promise<string>
     return 'http://127.0.0.1:' + (kept.port ?? 7373) + '/api';
 }
 
-// A page is called "YouTube" for a moment and then gets the name of the video,
-// so the list is only useful if the title is given time to settle.
 const SETTLE_MS = 4000;
 
-// How long the tab holding the card may say nothing before another may take
-// it. A browser killed outright leaves nobody to hand it over.
 const HOLDS_MS = 30000;
 
 interface Watching

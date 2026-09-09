@@ -45,7 +45,6 @@ type Activity struct {
 	Buttons    []Button    `json:"buttons,omitempty"`
 }
 
-// Milliseconds. Discord draws the bar off these and keeps it right between updates.
 type Timestamps struct {
 	Start int64 `json:"start,omitempty"`
 	End   int64 `json:"end,omitempty"`
@@ -72,8 +71,6 @@ type Presence struct {
 	// eight bytes of a head splits a message it will not put back together.
 	heard *bufio.Reader
 
-	// One command at a time: every one is answered, and two in flight would
-	// each read the other's answer.
 	mu sync.Mutex
 }
 
@@ -100,7 +97,6 @@ func greet(pipe io.ReadWriteCloser, id string) (*Presence, error) {
 		return nil, err
 	}
 
-	// The only place a wrong id shows itself, and then only once.
 	opcode, body, err := p.hear()
 	if err != nil {
 		pipe.Close()
@@ -135,7 +131,6 @@ func (p *Presence) ask(command string, args any) error {
 		return err
 	}
 
-	// Left on the socket the answer fills the pipe, and the next write blocks.
 	opcode, body, err := p.hear()
 	if err != nil {
 		return err
@@ -155,8 +150,6 @@ func (p *Presence) hear() (uint32, []byte, error) {
 		err    error
 	}
 
-	// Room for one, so that a read coming back late has somewhere to put its
-	// answer and can finish instead of holding a goroutine forever.
 	heard := make(chan said, 1)
 
 	go func() {

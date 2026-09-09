@@ -7,7 +7,6 @@ import (
 	"netwatch/internal/play"
 )
 
-// Discord cuts a longer line itself, mid-word and without saying it did.
 const longest = 128
 
 const paused = "Paused"
@@ -28,7 +27,6 @@ func Card(live now.Live) *Activity {
 		},
 	}
 
-	// A bar that stands still reads as a bar that is stuck.
 	if live.Paused {
 		card.State = paused
 	} else {

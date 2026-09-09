@@ -9,10 +9,8 @@ import (
 	"netwatch/internal/play"
 )
 
-// A closed browser says nothing at all, which is what a very long film says.
 const Quiet = 35 * time.Second
 
-// Less than this is a report arriving late; more is somebody dragging the bar.
 const Drift = 3 * time.Second
 
 type Said struct {
@@ -21,11 +19,9 @@ type Said struct {
 	Paused   bool
 	Position time.Duration
 
-	// Zero when the page did not say, which is what a live stream looks like.
 	Length time.Duration
 }
 
-// A Live is told the way a bar wants to hear it: when this began, not how far in.
 type Live struct {
 	Play   play.Play
 	By     string
@@ -34,7 +30,6 @@ type Live struct {
 	Started time.Time
 	Ends    time.Time
 
-	// The start of a paused video walks forward a second every second.
 	Position time.Duration
 }
 

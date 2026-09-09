@@ -16,34 +16,21 @@ type Play struct {
 	URL     string    `json:"url"`
 	At      time.Time `json:"at"`
 
-	// Zero when nobody counted: a tab knows when it opened, rarely when it
-	// stopped.
 	Seconds int `json:"seconds,omitempty"`
 }
 
-// A Service is one place things get watched. Adding another is one entry in
-// the list below: no switch to extend, no interface, no registration.
 type Service struct {
 	Name  string
 	Hosts []string
 
-	// Shown is the name people read. Name stays lowercase and plain: it is a
-	// key in a file and the name of a picture Discord looks up by it.
 	Shown string
 
-	// Heard is what somebody listens to rather than watches, which Discord
-	// says out loud above the card.
 	Heard bool
 
 	Kind string
 
-	// Unnamed is a service whose address never says what is on. Yandex Music
-	// plays from a page called /home with the track in a bar at the foot of
-	// it; asking the address is asking the wrong one.
 	Unnamed bool
 
-	// Watching answers what is being watched here, and nothing when the page
-	// is not a watch at all: a search on YouTube is still YouTube.
 	Watching func(*url.URL) string
 }
 
@@ -58,8 +45,6 @@ var services = []Service{
 				return strings.TrimPrefix(u.Path, "/")
 			}
 
-			// A watch page names the video in a parameter, everything else in the path.
-			// Shorts are watched more than anything and went unwritten for months.
 			if id := piece(u.Path, "/shorts/", "/live/", "/embed/"); id != "" {
 				return id
 			}
@@ -84,7 +69,6 @@ var services = []Service{
 		Unnamed: true,
 		Hosts:   []string{"music.yandex.ru", "music.yandex.com"},
 		Watching: func(u *url.URL) string {
-			// The album on its own is a page somebody browsed rather than heard.
 			return after(u.Path, "/track/")
 		},
 	},
@@ -94,7 +78,6 @@ var services = []Service{
 		Shown: "VK Video",
 		Hosts: []string{"vk.com", "vkvideo.ru", "m.vk.com"},
 		Watching: func(u *url.URL) string {
-			// A clip is named the same way a video is, and is watched more.
 			return piece(u.Path, "/video", "/clip")
 		},
 	},
@@ -108,7 +91,6 @@ var services = []Service{
 				return id
 			}
 
-			// A bare channel address is a live stream, named after the channel.
 			return strings.Trim(u.Path, "/")
 		},
 	},
@@ -260,8 +242,6 @@ var services = []Service{
 		Heard: true,
 		Hosts: []string{"soundcloud.com", "m.soundcloud.com", "on.soundcloud.com"},
 		Watching: func(u *url.URL) string {
-			// A name on its own is a person; a name with something under it is
-			// a track by that person.
 			return deep(u.Path, 2)
 		},
 	},
@@ -311,7 +291,6 @@ var services = []Service{
 		Shown: "TikTok",
 		Hosts: []string{"tiktok.com", "www.tiktok.com", "vm.tiktok.com"},
 		Watching: func(u *url.URL) string {
-			// Nobody shares the long address, and a short one has no id but itself.
 			if u.Host == "vm.tiktok.com" {
 				return strings.Trim(u.Path, "/")
 			}
@@ -440,9 +419,6 @@ func Kinds() []string {
 
 const Yours = "Yours"
 
-// Added at the start from a file and by the page. A service somebody adds
-// brings no rule for reading its addresses, so it is treated the way Yandex
-// Music is: the page is asked what is on.
 var (
 	minding sync.Mutex
 	added   []Service
@@ -573,7 +549,6 @@ var counted = regexp.MustCompile(`^\(\d+\)\s*`)
 
 // Reported is a play the page named because the address would not. Some
 // players keep the track out of the address: it sits in a bar at the foot of
-// a page called /home, and the page is the only one who knows what is on.
 func Reported(address, title string, at time.Time) (Play, bool) {
 	parsed, err := url.Parse(address)
 	if err != nil || parsed.Host == "" {
@@ -590,8 +565,6 @@ func Reported(address, title string, at time.Time) (Play, bool) {
 			return Play{}, false
 		}
 
-		// The name does for an id: telling one track from the next is the
-		// whole of what an id is for.
 		return Play{
 			Service: service.Name,
 			ID:      name,

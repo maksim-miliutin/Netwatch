@@ -23,9 +23,6 @@ button.addEventListener('click', async () =>
     told.textContent = 'Saved. netwatch is at 127.0.0.1:' + port + ' now.';
 });
 
-// The program knows a site the moment somebody adds it; the browser does not,
-// and cannot be told by anyone but the person sitting there. So the asking
-// happens here, one button to a site, and the script is registered for good.
 const sites = document.getElementById('sites') as HTMLElement;
 
 function reach(host: string): string

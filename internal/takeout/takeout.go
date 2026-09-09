@@ -11,7 +11,6 @@ import (
 	"netwatch/internal/play"
 )
 
-// A record as Google writes it. Everything here is optional in practice.
 type record struct {
 	Header   string `json:"header"`
 	Title    string `json:"title"`
@@ -44,7 +43,6 @@ func Read(from io.Reader) (plays []play.Play, skipped int, err error) {
 
 func asPlay(one record) (play.Play, bool) {
 	if one.TitleURL == "" {
-		// A video taken down leaves a row with no address.
 		return play.Play{}, false
 	}
 

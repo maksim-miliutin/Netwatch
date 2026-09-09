@@ -289,6 +289,17 @@
         <div><button>Save</button></div>
     </form>
 
+    {{if .Bootable}}
+    <h2 class="apart">Starting</h2>
+    <p class="quiet">A list keeps itself only while something is keeping it.</p>
+
+    <form class="join" method="post" action="/api/start">
+        <button name="with" value="{{if .Boots}}no{{else}}yes{{end}}">
+            {{if .Boots}}Do not start with Windows{{else}}Start with Windows{{end}}
+        </button>
+    </form>
+    {{end}}
+
     <h2 class="apart">Add a site</h2>
     <p class="quiet">Anything with a video or a sound on it. netwatch cannot
     read a strange address, so it asks the page instead — which is how it knows

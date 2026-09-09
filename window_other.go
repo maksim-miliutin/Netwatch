@@ -8,7 +8,6 @@ import (
 	"runtime"
 )
 
-// Neither of these takes an app mode, so this is an ordinary tab.
 func window(address string) error {
 	opener := "xdg-open"
 	if runtime.GOOS == "darwin" {

@@ -65,18 +65,15 @@ type Server struct {
 	Quiet    *quiet.List
 	Mine     *mine.List
 
-	// The last thing the card had to say, for the popup. Nil when nobody is
-	// telling: the card is off, or this is a test.
 	Says func() string
 
-	// What to do when the page asks to stop. Nil in a test, which should not
-	// be able to end the run that is testing it.
 	Quitting func()
 
-	// The application id the card is on, and what to do when the page hands
-	// over another. A dash turns it off.
 	Id      string
 	Joining func(id string) error
+
+	Starting func() bool
+	Starts   func(with bool) error
 }
 
 func (s *Server) Routes() *http.ServeMux {
@@ -92,6 +89,7 @@ func (s *Server) Routes() *http.ServeMux {
 	mux.HandleFunc("GET /api/mine", s.own)
 	mux.HandleFunc("POST /api/quit", s.quit)
 	mux.HandleFunc("POST /api/discord", s.joining)
+	mux.HandleFunc("POST /api/start", s.startup)
 	mux.HandleFunc("GET /icon.png", s.icon)
 	mux.HandleFunc("POST /api/forget", s.forget)
 	mux.HandleFunc("GET /plays.csv", s.sheet)
@@ -104,8 +102,6 @@ func (s *Server) Routes() *http.ServeMux {
 
 // Nothing here is reachable from anywhere but this machine, and three things
 // are asked rather than one. Where the connection came from; the name it was
-// called by, since a name pointed at 127.0.0.1 dials loopback all the same;
-// and whether whoever wrote here meant to.
 func Near(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !here(r.RemoteAddr) {
@@ -191,8 +187,6 @@ func (s *Server) seen(w http.ResponseWriter, r *http.Request) {
 
 	one, ok := play.Recognise(said.URL, said.Title, time.Now())
 	if !ok {
-		// Not a refusal: the extension reports every tab, and most tabs are
-		// not a thing being watched.
 		answer(w, map[string]bool{"kept": false})
 
 		return
@@ -229,8 +223,6 @@ func (s *Server) playing(w http.ResponseWriter, r *http.Request) {
 
 	one, ok := play.Recognise(said.URL, said.Title, at)
 
-	// A player that keeps the track out of the address leaves the page as the
-	// only one who knows what is on.
 	if !ok {
 		one, ok = play.Reported(said.URL, said.Title, at)
 	}
@@ -289,8 +281,6 @@ type Now struct {
 	By      string `json:"by,omitempty"`
 	Paused  bool   `json:"paused,omitempty"`
 
-	// Seconds in and seconds long, so the line can say where it stands. Whole
-	// is zero for a stream, which has nowhere to stand in.
 	Gone  int `json:"gone,omitempty"`
 	Whole int `json:"whole,omitempty"`
 
@@ -392,8 +382,6 @@ func (s *Server) joining(w http.ResponseWriter, r *http.Request) {
 // Quitting is a write, so it goes through the same door as the rest: off
 // this page or not at all.
 func (s *Server) quit(w http.ResponseWriter, r *http.Request) {
-	// A page rather than an answer: the button is pressed by a person, and a
-	// person handed raw json reads it as something having gone wrong.
 	w.Header().Set("content-type", "text/html; charset=utf-8")
 	_, _ = w.Write(farewell)
 
@@ -483,6 +471,22 @@ func (s *Server) adding(w http.ResponseWriter, r *http.Request) {
 	back(w, r)
 }
 
+func (s *Server) startup(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil || s.Starts == nil {
+		http.Error(w, "unreadable", http.StatusBadRequest)
+
+		return
+	}
+
+	if err := s.Starts(r.FormValue("with") == "yes"); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+
+		return
+	}
+
+	back(w, r)
+}
+
 func (s *Server) hiding(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "unreadable", http.StatusBadRequest)
@@ -512,8 +516,6 @@ func (s *Server) hiding(w http.ResponseWriter, r *http.Request) {
 	back(w, r)
 }
 
-// Shows is how much of the list the page draws. All of a Takeout import is
-// a page nobody scrolls, redrawn every ten seconds.
 const Shows = 200
 
 func elsewhere(span, find string) string {
@@ -557,7 +559,6 @@ func matching(plays []play.Play, find string) []play.Play {
 
 // The line under the name answers what people open this page to ask: is it
 // working. A browser that stopped reporting looks exactly like an evening
-// nobody watched anything, and only the date of the last play tells them apart.
 func (s *Server) working(plays []play.Play) string {
 	said := "Nothing reported yet"
 
@@ -655,8 +656,6 @@ func (s *Server) onNow() Now {
 		Paused:  live.Paused,
 	}
 
-	// A paused thing stands where the page left it. A running one is wherever
-	// the clock has carried it since it started.
 	if live.Paused {
 		on.Gone = int(live.Position.Seconds())
 	} else {
@@ -717,15 +716,11 @@ func (s *Server) show(w http.ResponseWriter, r *http.Request) {
 
 	choices := s.choices()
 
-	// A month of watching is a few hundred lines, and a year is thousands. The
-	// only way back to a particular one is its name.
 	find := strings.TrimSpace(r.URL.Query().Get("find"))
 	if find != "" {
 		plays = matching(plays, find)
 	}
 
-	// Three spans in a ring, and the page names the next one so that finding
-	// it takes a click rather than a guess.
 	title, next, named := "This week", "month", "the month"
 	total := sum.Week(plays, time.Now())
 
@@ -747,23 +742,25 @@ func (s *Server) show(w http.ResponseWriter, r *http.Request) {
 	}
 
 	_ = page.Execute(w, struct {
-		Now     Now
-		Days    []Day
-		Total   sum.Total
-		Title   string
-		Next    string
-		Named   string
-		Span    string
-		More    int
-		Find    string
-		Working string
-		Fresh   bool
-		Card    string
-		Said    string
-		Choices []Sort
+		Now      Now
+		Days     []Day
+		Total    sum.Total
+		Title    string
+		Next     string
+		Named    string
+		Span     string
+		More     int
+		Find     string
+		Working  string
+		Fresh    bool
+		Card     string
+		Said     string
+		Boots    bool
+		Bootable bool
+		Choices  []Sort
 	}{s.onNow(), byDay(plays, time.Now()), total, title, elsewhere(next, find),
 		named, r.URL.Query().Get("span"), more, find, working, fresh, s.Id,
-		s.told(), choices})
+		s.told(), s.Starting != nil && s.Starting(), s.Starts != nil, choices})
 }
 
 func answer(w http.ResponseWriter, body any) {

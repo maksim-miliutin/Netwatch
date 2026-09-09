@@ -1,6 +1,3 @@
-// The only place that answers "is this thing working at all". The page cannot:
-// somebody who opens it already knows where to look.
-
 interface Now
 {
     playing: boolean;
@@ -64,8 +61,6 @@ function draw(on: Now): void
     line(on.title ?? '', 'what');
     line((on.by ? on.by + ' · ' : '') + on.service + (on.paused ? ' · paused' : ''), 'who');
 
-    // A stream has nothing to draw a bar towards, and a paused one would draw
-    // a bar that stands still.
     if (on.whole && !on.paused)
     {
         bar(on.gone ?? 0, on.whole);
@@ -121,8 +116,6 @@ chrome.storage.local.get('asleep').then((kept) =>
 
     wording(asleep);
 
-    // Said rather than shown by a shade of grey: dimming means nothing to
-    // somebody who has not seen it undimmed.
     if (asleep)
     {
         line('Paused. Nothing is being written down.', 'stopped');
