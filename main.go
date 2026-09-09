@@ -16,6 +16,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"netwatch/internal/discord"
@@ -86,6 +87,10 @@ func main() {
 	}
 
 	watching := now.New()
+	var boots atomic.Bool
+
+	boots.Store(starting())
+
 	said := &latest{}
 
 	showing := &card{
@@ -105,8 +110,16 @@ func main() {
 		Says:     said.last,
 		Quitting: func() { os.Exit(0) },
 		Id:       id,
-		Starting: starting,
-		Starts:   start,
+		Starting: boots.Load,
+		Starts: func(with bool) error {
+			if err := start(with); err != nil {
+				return err
+			}
+
+			boots.Store(with)
+
+			return nil
+		},
 		Joining: func(asked string) error {
 			kept, err := remembered(asked, filepath.Dir(where))
 			if err != nil {
