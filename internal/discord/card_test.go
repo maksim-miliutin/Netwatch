@@ -46,11 +46,21 @@ func TestSaysListeningForWhatIsListenedTo(t *testing.T) {
 	}
 }
 
-func TestNamesTheChannelWhenThePageSaidOne(t *testing.T) {
+// The channel and the service both, because the tile that would have said the
+// service is a question mark until somebody uploads one.
+func TestNamesTheChannelAndTheServiceWhenThePageSaidOne(t *testing.T) {
 	one := live("youtube", "Нечто")
 	one.By = "Канал"
 
-	if state := Card(one).State; state != "Канал" {
+	if state := Card(one).State; state != "Канал · YouTube" {
+		t.Errorf("second line is %q", state)
+	}
+}
+
+// A page that named no channel leaves the service on its own rather than
+// saying it twice.
+func TestSaysTheServiceOnceWhenThereIsNoChannel(t *testing.T) {
+	if state := Card(live("youtube", "Нечто")).State; state != "YouTube" {
 		t.Errorf("second line is %q", state)
 	}
 }

@@ -3,6 +3,7 @@
 package web
 
 import (
+	"crypto/sha256"
 	_ "embed"
 	"encoding/csv"
 	"encoding/json"
@@ -289,9 +290,13 @@ type Now struct {
 
 func (s *Server) icon(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("content-type", "image/png")
-	w.Header().Set("cache-control", "max-age=86400")
+	w.Header().Set("cache-control", "max-age=86400, immutable")
 	_, _ = w.Write(mark)
 }
+
+// A browser keeps an icon for as long as it was told to and never asks again
+// for one at the same address. The address changes with the picture.
+var stamp = fmt.Sprintf("%x", sha256.Sum256(mark))[:8]
 
 func (s *Server) showing(w http.ResponseWriter, r *http.Request) {
 	answer(w, s.onNow())
@@ -755,12 +760,14 @@ func (s *Server) show(w http.ResponseWriter, r *http.Request) {
 		Fresh    bool
 		Card     string
 		Said     string
+		Stamp    string
 		Boots    bool
 		Bootable bool
 		Choices  []Sort
 	}{s.onNow(), byDay(plays, time.Now()), total, title, elsewhere(next, find),
 		named, r.URL.Query().Get("span"), more, find, working, fresh, s.Id,
-		s.told(), s.Starting != nil && s.Starting(), s.Starts != nil, choices})
+		s.told(), stamp, s.Starting != nil && s.Starting(), s.Starts != nil,
+		choices})
 }
 
 func answer(w http.ResponseWriter, body any) {

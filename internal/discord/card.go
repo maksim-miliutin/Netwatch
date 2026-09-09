@@ -23,7 +23,7 @@ func Card(live now.Live) *Activity {
 		State:   line(whose(live)),
 		Assets: &Assets{
 			Large:     live.Play.Service,
-			LargeText: play.Shown(live.Play.Service),
+			LargeText: line(named(live.Play)),
 		},
 	}
 
@@ -48,12 +48,16 @@ func named(one play.Play) string {
 	return one.ID
 }
 
+// The service is named in words as well as on the tile: a tile never uploaded
+// to the application shows as a question mark, which says less than nothing.
 func whose(live now.Live) string {
-	if live.By != "" {
-		return live.By
+	shown := play.Shown(live.Play.Service)
+
+	if live.By != "" && live.By != shown {
+		return live.By + " · " + shown
 	}
 
-	return play.Shown(live.Play.Service)
+	return shown
 }
 
 // With an end Discord counts down, without one it counts up — as a stream should.
