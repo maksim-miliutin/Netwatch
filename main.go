@@ -26,6 +26,13 @@ import (
 	"netwatch/internal/web"
 )
 
+// The application everybody who runs this uses, unless they put in their own.
+// Rich Presence does not care who owns the number: it says which name Discord
+// writes above the card and where the pictures come from, and nothing else.
+// Empty means nobody has made one for this project yet, and the card waits to
+// be told a number by hand.
+const Application = "1546852021934751804"
+
 func main() {
 	port := flag.Int("port", 7373, "where to listen, on this machine only")
 	file := flag.String("file", "", "where to keep the list")
@@ -56,6 +63,10 @@ func main() {
 	id, err := remembered(*given, filepath.Dir(where))
 	if err != nil {
 		log.Fatal(err)
+	}
+
+	if id == "" {
+		id = Application
 	}
 
 	hushed, err := quiet.Open(filepath.Join(filepath.Dir(where), "quiet"))
