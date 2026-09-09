@@ -31,6 +31,12 @@ var pageSource string
 //go:embed gone.html
 var farewell []byte
 
+// The mark. A window of its own takes its icon from the page, and a page with
+// none gets the globe the browser hands out to strangers.
+//
+//go:embed icon.png
+var mark []byte
+
 // Minutes and hours rather than seconds: nobody counts a week in seconds.
 var page = template.Must(template.New("page").Funcs(template.FuncMap{
 	"hours": hours,
@@ -88,6 +94,7 @@ func (s *Server) Routes() *http.ServeMux {
 	mux.HandleFunc("POST /api/quiet", s.hiding)
 	mux.HandleFunc("POST /api/quit", s.quit)
 	mux.HandleFunc("POST /api/discord", s.joining)
+	mux.HandleFunc("GET /icon.png", s.icon)
 	mux.HandleFunc("POST /api/forget", s.forget)
 	mux.HandleFunc("GET /plays.csv", s.sheet)
 	mux.HandleFunc("GET /api/plays", s.plays)
@@ -289,6 +296,12 @@ type Now struct {
 	Whole int `json:"whole,omitempty"`
 
 	Discord string `json:"discord,omitempty"`
+}
+
+func (s *Server) icon(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("content-type", "image/png")
+	w.Header().Set("cache-control", "max-age=86400")
+	_, _ = w.Write(mark)
 }
 
 func (s *Server) showing(w http.ResponseWriter, r *http.Request) {
