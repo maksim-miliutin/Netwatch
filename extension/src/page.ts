@@ -3,8 +3,6 @@
 
 const EVERY_MS = 10000;
 
-// What a site puts after the name in a tab title, used when the page did not
-// name what it plays itself.
 const SITES = 'YouTube|RUTUBE|Rutube|VK Видео|ВКонтакте|Twitch|Дзен|ОК|Кинопоиск'
     + '|Okko|ivi|Wink|Premier|Netflix|Vimeo|Dailymotion|Coub|Яндекс Музыка';
 

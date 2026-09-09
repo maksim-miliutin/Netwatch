@@ -1,6 +1,3 @@
-// The program takes a -port flag, and until this existed the extension did not
-// know that: it kept reporting to 7373 and went quiet with nothing to say.
-
 const field = document.getElementById('port') as HTMLInputElement;
 const button = document.getElementById('save') as HTMLButtonElement;
 const told = document.getElementById('said') as HTMLElement;

@@ -1,8 +1,4 @@
 // Package mine keeps the services somebody added themselves.
-//
-// A line to a service: the address of the site, then the name to show. What is
-// added here brings no rule for reading its addresses and needs none — the
-// page says what is playing, and that is enough to write it down.
 package mine
 
 import (

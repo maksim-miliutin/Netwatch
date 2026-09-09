@@ -35,8 +35,6 @@ type Service struct {
 	// says out loud above the card.
 	Heard bool
 
-	// Kind is the sort of thing this is, for a page that lists them all: four
-	// short lists read, one long one does not.
 	Kind string
 
 	// Unnamed is a service whose address never says what is on. Yandex Music
@@ -422,8 +420,6 @@ var services = []Service{
 	},
 }
 
-// Shown hands back the name a service is read by, and the key itself for one
-// this no longer knows: a play imported years ago still has to be drawn.
 func Shown(name string) string {
 	if service, ok := find(name); ok {
 		return service.Shown
@@ -432,8 +428,6 @@ func Shown(name string) string {
 	return name
 }
 
-// Kinds are the sorts of service there are, in the order a page should list
-// them: what people watch most first.
 func Kinds() []string {
 	kinds := []string{"Video", "Streams", "Films", "Music"}
 
@@ -444,7 +438,6 @@ func Kinds() []string {
 	return kinds
 }
 
-// Yours is where services somebody added themselves are listed.
 const Yours = "Yours"
 
 // Added at the start from a file and by the page. A service somebody adds
@@ -493,8 +486,6 @@ func mine() []Service {
 	return append([]Service(nil), added...)
 }
 
-// all is the list this knows, the ones it was born with and the ones somebody
-// added since.
 func all() []Service {
 	return append(append([]Service(nil), services...), mine()...)
 }
@@ -637,8 +628,6 @@ func after(path, marker string) string {
 	return rest
 }
 
-// under is what follows a path part, and the rest of the path stands in for
-// an id: telling one film from the next is all that is needed.
 func under(path string, parts ...string) string {
 	for _, part := range parts {
 		if strings.HasPrefix(path, part) {
@@ -649,8 +638,6 @@ func under(path string, parts ...string) string {
 	return ""
 }
 
-// numbered is the last part of a path when it is a number, which is the whole
-// of how Vimeo names a film: vimeo.com/347119375.
 func numbered(path string) string {
 	last := path[strings.LastIndex(path, "/")+1:]
 
@@ -671,8 +658,6 @@ func piece(path string, markers ...string) string {
 	return ""
 }
 
-// deep is the path when it goes at least that many parts down. It is how a
-// site that names a track after its author tells one from a profile page.
 func deep(path string, parts int) string {
 	trimmed := strings.Trim(path, "/")
 

@@ -29,7 +29,6 @@ const biggest = 64 << 10
 // good: the loop stops, the card freezes, and nothing ever reconnects.
 const Patience = 15 * time.Second
 
-// The word above the card. Music that says "watching" is noticed at once.
 const (
 	listening = 2
 	watching  = 3
@@ -37,7 +36,6 @@ const (
 
 var ErrNoClient = errors.New("no discord is running on this machine")
 
-// An Activity is the card. The field names are Discord's own.
 type Activity struct {
 	Type       int         `json:"type"`
 	Details    string      `json:"details,omitempty"`
@@ -88,7 +86,6 @@ func Open(id string) (*Presence, error) {
 	return greet(pipe, id)
 }
 
-// Apart from Open because a test can be handed both ends of a pipe.
 func greet(pipe io.ReadWriteCloser, id string) (*Presence, error) {
 	p := &Presence{
 		id:       id,
@@ -120,7 +117,6 @@ func greet(pipe io.ReadWriteCloser, id string) (*Presence, error) {
 	return p, nil
 }
 
-// Nothing takes the card down.
 func (p *Presence) Show(card *Activity) error {
 	return p.ask("SET_ACTIVITY", map[string]any{"pid": os.Getpid(), "activity": card})
 }
@@ -152,8 +148,6 @@ func (p *Presence) ask(command string, args any) error {
 	return complaint(body)
 }
 
-// hear is read with a clock on it. The read itself cannot be interrupted, so
-// the pipe is closed instead, and that is what brings it back.
 func (p *Presence) hear() (uint32, []byte, error) {
 	type said struct {
 		opcode uint32
@@ -232,7 +226,6 @@ func refusal(body []byte) error {
 	return fmt.Errorf("discord: %s", said.Message)
 }
 
-// A card Discord will not show is refused in an ordinary answer, not a close.
 func complaint(body []byte) error {
 	var said struct {
 		Event string `json:"evt"`

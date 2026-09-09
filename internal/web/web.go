@@ -26,18 +26,12 @@ import (
 //go:embed page.html
 var pageSource string
 
-// Said on the way out, when there is no page left to go back to.
-//
 //go:embed gone.html
 var farewell []byte
 
-// The mark. A window of its own takes its icon from the page, and a page with
-// none gets the globe the browser hands out to strangers.
-//
 //go:embed icon.png
 var mark []byte
 
-// Minutes and hours rather than seconds: nobody counts a week in seconds.
 var page = template.Must(template.New("page").Funcs(template.FuncMap{
 	"hours": hours,
 	"shown": play.Shown,
@@ -166,7 +160,6 @@ func readable(said string) bool {
 	return strings.TrimSpace(strings.ToLower(kind)) == "application/json"
 }
 
-// By name as well as by number: localhost is what somebody types.
 func ours(host string) bool {
 	name, _, err := net.SplitHostPort(host)
 	if err != nil {
@@ -214,8 +207,6 @@ func (s *Server) seen(w http.ResponseWriter, r *http.Request) {
 	answer(w, map[string]any{"kept": true, "service": one.Service})
 }
 
-// What a page says about itself while it runs. Seconds with a fraction
-// because that is what a media element counts in.
 type living struct {
 	URL      string  `json:"url"`
 	Title    string  `json:"title"`
@@ -225,7 +216,6 @@ type living struct {
 	Length   float64 `json:"length"`
 }
 
-// A page knows the name of what it plays; a tab knows the name of the tab.
 func (s *Server) playing(w http.ResponseWriter, r *http.Request) {
 	var said living
 
@@ -291,8 +281,6 @@ func seconds(said float64) time.Duration {
 	return time.Duration(said * float64(time.Second))
 }
 
-// A Now is the line at the top of the page, and the whole of what the popup in
-// the browser has to go on.
 type Now struct {
 	Playing bool   `json:"playing"`
 	Service string `json:"service,omitempty"`
@@ -327,7 +315,6 @@ func (s *Server) told() string {
 	return s.Says()
 }
 
-// A line of JSON per play is honest and unreadable by anything anybody has.
 func (s *Server) sheet(w http.ResponseWriter, r *http.Request) {
 	plays, err := s.Store.All()
 	if err != nil {
@@ -356,8 +343,6 @@ func (s *Server) sheet(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// A moment tells one watch of a video from the next, so it goes over the wire
-// with the rest: without it, crossing out today would cross out last month too.
 func (s *Server) forget(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "unreadable", http.StatusBadRequest)
@@ -381,8 +366,6 @@ func (s *Server) forget(w http.ResponseWriter, r *http.Request) {
 	back(w, r)
 }
 
-// Until this, the id came from a flag, and a program started by double
-// clicking is handed no flags: the exe could not be joined to Discord at all.
 func (s *Server) joining(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil || s.Joining == nil {
 		http.Error(w, "unreadable", http.StatusBadRequest)
@@ -418,7 +401,6 @@ func (s *Server) quit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// After the answer is on the wire, or the page never hears it.
 	go func() {
 		time.Sleep(200 * time.Millisecond)
 		s.Quitting()
@@ -431,8 +413,6 @@ type Choice struct {
 	Ticked bool
 }
 
-// A Sort is one kind of service with its own heading. All thirty-odd in one
-// list is a wall; four short lists are read.
 type Sort struct {
 	Kind    string
 	Choices []Choice
@@ -464,8 +444,6 @@ func (s *Server) choices() []Sort {
 	return sorts
 }
 
-// What the extension asks for: the sites somebody added, which the browser has
-// never been told about. The ones this was born knowing are in the manifest.
 func (s *Server) own(w http.ResponseWriter, r *http.Request) {
 	if s.Mine == nil {
 		answer(w, map[string]string{})
@@ -512,8 +490,6 @@ func (s *Server) hiding(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// The form says what to show, and everything else it knew about is hidden.
-	// A service the form never heard of stays as it was.
 	shown := map[string]bool{}
 	for _, name := range r.Form["show"] {
 		shown[name] = true
@@ -540,7 +516,6 @@ func (s *Server) hiding(w http.ResponseWriter, r *http.Request) {
 // a page nobody scrolls, redrawn every ten seconds.
 const Shows = 200
 
-// A search somebody just typed should survive a click on something else.
 func elsewhere(span, find string) string {
 	asked := url.Values{}
 	asked.Set("span", span)
@@ -565,8 +540,6 @@ func back(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, came, http.StatusSeeOther)
 }
 
-// Both the name and the service: somebody looking for "twitch" means the
-// service, and somebody looking for a title means the title.
 func matching(plays []play.Play, find string) []play.Play {
 	find = strings.ToLower(find)
 
@@ -609,7 +582,6 @@ func (s *Server) working(plays []play.Play) string {
 	return said + ", " + strconv.Itoa(len(plays)) + " plays kept."
 }
 
-// A Day breaks the list up so that a date is said once instead of on every row.
 type Day struct {
 	Date    string
 	Seconds int
@@ -633,8 +605,6 @@ func byDay(plays []play.Play, at time.Time) []Day {
 	return days
 }
 
-// The two days people read most get words instead of a date, which is
-// something to work out.
 func dated(when, at time.Time) string {
 	when, at = when.Local(), at.Local()
 
@@ -656,8 +626,6 @@ func sameDay(one, other time.Time) bool {
 	return year == otherYear && month == otherMonth && day == otherDay
 }
 
-// Minutes and seconds, and hours only when there are any: 4:07 rather than
-// 0:04:07.
 func clock(seconds int) string {
 	if seconds >= 3600 {
 		return fmt.Sprintf("%d:%02d:%02d", seconds/3600, (seconds%3600)/60, seconds%60)

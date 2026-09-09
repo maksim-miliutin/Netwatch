@@ -55,7 +55,6 @@ func Over(plays []play.Play, since time.Time) Total {
 		total.Services = append(total.Services, *service)
 	}
 
-	// By time first, by count when two services tie at nothing.
 	sort.Slice(total.Services, func(a, b int) bool {
 		if total.Services[a].Seconds != total.Services[b].Seconds {
 			return total.Services[a].Seconds > total.Services[b].Seconds
@@ -67,7 +66,6 @@ func Over(plays []play.Play, since time.Time) Total {
 	return total
 }
 
-// Week is the span most people mean when they ask where the time went.
 func Week(plays []play.Play, now time.Time) Total {
 	return Over(plays, now.AddDate(0, 0, -7))
 }

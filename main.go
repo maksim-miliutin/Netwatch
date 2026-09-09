@@ -74,7 +74,6 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// The log is opened before anything that writes to it.
 	written := writing(filepath.Join(filepath.Dir(where), "log"))
 	if written != nil {
 		defer written.Close()
@@ -161,8 +160,6 @@ func main() {
 	log.Fatal(http.Serve(ear, web.Near(server.Routes())))
 }
 
-// Reads a history and stops: importing while serving would rearrange the
-// list under somebody reading it.
 func bring(kept *store.Store, from string) error {
 	file, err := os.Open(from)
 	if err != nil {
@@ -194,8 +191,6 @@ func bring(kept *store.Store, from string) error {
 	return nil
 }
 
-// awake asks whether what is holding the port is this. Something else on it
-// is a mistake to say out loud, not a window to open.
 func awake(address string) bool {
 	client := http.Client{Timeout: 2 * time.Second}
 
@@ -262,8 +257,6 @@ func (c *card) to(id string) {
 	go discord.Follow(ctx, id, c.watching, c.hidden, c.told)
 }
 
-// The last thing the card had to say. With no console it has nowhere else to
-// appear, so the popup in the browser asks for it.
 type latest struct {
 	mu   sync.Mutex
 	text string
@@ -283,8 +276,6 @@ func (l *latest) last() string {
 	return l.text
 }
 
-// A flag is no use to somebody who starts this by double clicking it, and an
-// application id is not a secret: everybody who reads the card can read it.
 func remembered(asked, dir string) (string, error) {
 	file := filepath.Join(dir, "discord")
 
@@ -309,8 +300,6 @@ func remembered(asked, dir string) (string, error) {
 	return strings.TrimSpace(string(kept)), err
 }
 
-// Beside the program when that can be written to, and in the home folder
-// when it cannot.
 func chosen(asked string) (string, error) {
 	if asked != "" {
 		return asked, nil

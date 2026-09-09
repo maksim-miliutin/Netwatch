@@ -12,7 +12,6 @@ const longest = 128
 
 const paused = "Paused"
 
-// What it is on the first line, whose it is on the second, the bar underneath.
 func Card(live now.Live) *Activity {
 	kind := watching
 	if play.Heard(live.Play.Service) {
@@ -51,7 +50,6 @@ func named(one play.Play) string {
 	return one.ID
 }
 
-// Never empty: one line under a picture looks like something failed to load.
 func whose(live now.Live) string {
 	if live.By != "" {
 		return live.By

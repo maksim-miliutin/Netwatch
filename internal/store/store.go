@@ -84,8 +84,6 @@ func (s *Store) Add(one play.Play) error {
 	return nil
 }
 
-// Merge writes down plays from somewhere other than a browser tab, leaving
-// out the ones already here: an import run twice should cost nothing.
 func (s *Store) Merge(incoming []play.Play) (added int, err error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -121,7 +119,6 @@ func (s *Store) Merge(incoming []play.Play) (added int, err error) {
 	return added, s.rewrite(already)
 }
 
-// What makes two plays the same one: the thing watched and the moment.
 func key(one play.Play) string {
 	return one.Service + "\x00" + one.ID + "\x00" + one.At.UTC().Format(time.RFC3339)
 }
@@ -182,8 +179,6 @@ func (s *Store) Forget(service, id string, at time.Time) error {
 	return s.rewrite(left)
 }
 
-// Stop closes what is open because something said it ended rather than because
-// the next play arrived. A page that is left knows the moment it was left.
 func (s *Store) Stop(at time.Time) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -321,8 +316,6 @@ func (s *Store) read() ([]play.Play, error) {
 	return plays, nil
 }
 
-// kept remembers what was just written, so that the next read does not go back
-// to the disk for a file this only just finished with.
 func (s *Store) kept(plays []play.Play) {
 	s.newest = nil
 
