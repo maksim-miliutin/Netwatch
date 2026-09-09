@@ -3,6 +3,7 @@
 package discord
 
 import (
+	"bufio"
 	"crypto/rand"
 	"encoding/binary"
 	"encoding/hex"
@@ -26,7 +27,7 @@ const biggest = 64 << 10
 
 // Discord answers every command. One that does not would be waited on for
 // good: the loop stops, the card freezes, and nothing ever reconnects.
-const Patience = 5 * time.Second
+const Patience = 15 * time.Second
 
 // The word above the card. Music that says "watching" is noticed at once.
 const (
@@ -68,6 +69,11 @@ type Presence struct {
 	pipe     io.ReadWriteCloser
 	patience time.Duration
 
+	// Read through a buffer big enough for any frame Discord sends. A named
+	// pipe on Windows hands over one message at a time, and asking it for the
+	// eight bytes of a head splits a message it will not put back together.
+	heard *bufio.Reader
+
 	// One command at a time: every one is answered, and two in flight would
 	// each read the other's answer.
 	mu sync.Mutex
@@ -84,7 +90,12 @@ func Open(id string) (*Presence, error) {
 
 // Apart from Open because a test can be handed both ends of a pipe.
 func greet(pipe io.ReadWriteCloser, id string) (*Presence, error) {
-	p := &Presence{id: id, pipe: pipe, patience: Patience}
+	p := &Presence{
+		id:       id,
+		pipe:     pipe,
+		patience: Patience,
+		heard:    bufio.NewReaderSize(pipe, biggest),
+	}
 
 	if err := p.write(hello, map[string]any{"v": 1, "client_id": id}); err != nil {
 		pipe.Close()
@@ -189,7 +200,7 @@ func (p *Presence) write(opcode uint32, body any) error {
 func (p *Presence) read() (uint32, []byte, error) {
 	var head [8]byte
 
-	if _, err := io.ReadFull(p.pipe, head[:]); err != nil {
+	if _, err := io.ReadFull(p.heard, head[:]); err != nil {
 		return 0, nil, err
 	}
 
@@ -201,7 +212,7 @@ func (p *Presence) read() (uint32, []byte, error) {
 	}
 
 	body := make([]byte, length)
-	if _, err := io.ReadFull(p.pipe, body); err != nil {
+	if _, err := io.ReadFull(p.heard, body); err != nil {
 		return 0, nil, err
 	}
 

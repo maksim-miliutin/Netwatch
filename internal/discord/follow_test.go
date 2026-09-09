@@ -1,6 +1,7 @@
 package discord
 
 import (
+	"bufio"
 	"strings"
 	"testing"
 	"time"
@@ -116,7 +117,7 @@ func TestSaysAThingOnlyOnce(t *testing.T) {
 func TestLetsGoOfAClientThatStoppedAnswering(t *testing.T) {
 	f := &follower{
 		watching: now.New(),
-		to:       &Presence{pipe: deaf(), patience: 50 * time.Millisecond},
+		to:       sleeping(),
 	}
 
 	at := time.Now()
@@ -145,5 +146,15 @@ func TestSendsNothingForAServiceKeptQuiet(t *testing.T) {
 
 	if sent := string((<-heard).body); !strings.Contains(sent, `"activity":null`) {
 		t.Errorf("sent %s for a service kept quiet", sent)
+	}
+}
+
+func sleeping() *Presence {
+	pipe := deaf()
+
+	return &Presence{
+		pipe:     pipe,
+		patience: 50 * time.Millisecond,
+		heard:    bufio.NewReader(pipe),
 	}
 }

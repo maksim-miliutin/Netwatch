@@ -1,6 +1,7 @@
 package discord
 
 import (
+	"bufio"
 	"encoding/json"
 	"io"
 	"net"
@@ -29,7 +30,7 @@ func fake(answers ...answer) (io.ReadWriteCloser, <-chan said) {
 		defer theirs.Close()
 		defer close(heard)
 
-		far := &Presence{pipe: theirs}
+		far := &Presence{pipe: theirs, heard: bufio.NewReader(theirs)}
 
 		for _, reply := range answers {
 			opcode, body, err := far.read()
@@ -153,7 +154,7 @@ func deaf() io.ReadWriteCloser {
 	ours, theirs := net.Pipe()
 
 	go func() {
-		far := &Presence{pipe: theirs}
+		far := &Presence{pipe: theirs, heard: bufio.NewReader(theirs)}
 
 		for {
 			if _, _, err := far.read(); err != nil {
@@ -171,7 +172,12 @@ func TestGivesUpOnAClientThatSaysNothing(t *testing.T) {
 	done := make(chan error, 1)
 
 	go func() {
-		presence := &Presence{id: "424242", pipe: pipe, patience: 50 * time.Millisecond}
+		presence := &Presence{
+			id:       "424242",
+			pipe:     pipe,
+			patience: 50 * time.Millisecond,
+			heard:    bufio.NewReader(pipe),
+		}
 		done <- presence.Show(&Activity{Type: watching, Details: "Нечто"})
 	}()
 
