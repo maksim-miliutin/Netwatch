@@ -31,7 +31,7 @@ import (
 // writes above the card and where the pictures come from, and nothing else.
 // Empty means nobody has made one for this project yet, and the card waits to
 // be told a number by hand.
-const Application = "1546852021934751804"
+const Application = ""
 
 func main() {
 	port := flag.Int("port", 7373, "where to listen, on this machine only")
