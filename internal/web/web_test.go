@@ -554,7 +554,7 @@ func TestSaysWhetherItIsWorking(t *testing.T) {
 
 	after := shown(t, handler)
 
-	if !strings.Contains(after, "Reporting") || !strings.Contains(after, "1 play kept") {
+	if !strings.Contains(after, "Reporting") || !strings.Contains(after, "1 play kept.") {
 		t.Errorf("got %q", after[:200])
 	}
 

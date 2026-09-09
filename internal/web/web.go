@@ -534,21 +534,21 @@ func (s *Server) working(plays []play.Play) string {
 		said = "Reporting"
 
 		if time.Since(plays[0].At) > 24*time.Hour {
-			said = "Silent since " + plays[0].At.Format("2 January")
+			said = "Nothing reported since " + plays[0].At.Format("2 January")
 		}
 	}
 
 	if s.Id != "" {
-		said += " · Discord on"
+		said += ", card on"
 	} else {
-		said += " · Discord off"
+		said += ", card off"
 	}
 
 	if len(plays) == 1 {
-		return said + " · 1 play kept"
+		return said + ", 1 play kept."
 	}
 
-	return said + " · " + strconv.Itoa(len(plays)) + " plays kept"
+	return said + ", " + strconv.Itoa(len(plays)) + " plays kept."
 }
 
 // A Day breaks the list up so that a date is said once instead of on every row.

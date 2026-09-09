@@ -10,37 +10,54 @@
         margin: 3rem auto;
         padding: 0 1.5rem;
         font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-        color: #1a1f24;
+        color: #000;
+        background: #fff;
     }
 
-    h1 { font-size: 1.5rem; margin: 0 0 0.2rem; }
-    h2 { font-size: 1rem; margin: 2.5rem 0 0.6rem; }
+    /* Two families, and the line between them is what each is for. Georgia
+       carries the names of things watched: those are titles of works, and
+       titles of works are set in a text face. The interface around them is
+       machinery, and machinery is set in the system sans. */
+    h1 {
+        font: 400 1.7rem/1.2 Georgia, "Times New Roman", serif;
+        letter-spacing: -0.01em;
+        margin: 0 0 0.3rem;
+    }
+
+    h2 { font-size: 0.95rem; font-weight: 600; margin: 2.5rem 0 0.6rem; }
 
     p { margin: 0.4rem 0; }
     b, td, .times { font-variant-numeric: tabular-nums; }
 
-    .lead, .quiet { color: #6b7178; font-size: 0.9rem; }
+    .lead, .quiet { color: #5a5a5a; font-size: 0.9rem; }
 
     .now { margin: 2rem 0 2.6rem; }
-    .now .label { color: #6b7178; font-size: 0.78rem; margin: 0 0 0.4rem; }
-    .now .what { font-size: 1.3rem; line-height: 1.3; margin: 0; max-width: 34rem; }
-    .now .who { color: #6b7178; margin: 0.15rem 0 0.9rem; font-size: 0.9rem; }
+    .now .what {
+        font: 400 1.55rem/1.25 Georgia, "Times New Roman", serif;
+        margin: 0;
+        max-width: 32rem;
+    }
 
-    .bar { height: 4px; background: #e4e2dd; }
-    .bar i { display: block; height: 100%; width: 0; background: #1a1f24; }
+    .now .who { color: #5a5a5a; margin: 0.25rem 0 1rem; font-size: 0.9rem; }
+
+    /* The one loud thing on the page, and the only red on it: a bar that is
+       running is the whole of what this program is for. */
+    .bar { height: 4px; background: #e6e6e6; }
+    .bar i { display: block; height: 100%; width: 0; background: #c1121f; }
     .times { display: flex; justify-content: space-between; margin: 0.4rem 0 0;
-             color: #6b7178; font-size: 0.8rem; }
+             color: #5a5a5a; font-size: 0.8rem; }
 
     .day { display: flex; justify-content: space-between; align-items: baseline;
-           margin: 1.8rem 0 0.2rem; font-size: 0.85rem; color: #6b7178; }
+           margin: 1.8rem 0 0.2rem; font-size: 0.85rem; color: #5a5a5a; }
 
     ul { padding-left: 1.1rem; margin: 0.5rem 0; }
 
     table { border-collapse: collapse; width: 100%; }
     td { padding: 0.45rem 1rem 0.45rem 0; vertical-align: baseline; }
     .title { max-width: 26rem; }
-    td:first-child { color: #6b7178; width: 7rem; }
-    td:last-child { color: #6b7178; white-space: nowrap; text-align: right;
+    .title a { font: 1.02rem/1.45 Georgia, "Times New Roman", serif; }
+    td:first-child { color: #5a5a5a; width: 7rem; }
+    td:last-child { color: #5a5a5a; white-space: nowrap; text-align: right;
                     padding-right: 0; }
 
     a { color: inherit; }
@@ -49,7 +66,7 @@
     .find input { font: inherit; font-size: 0.9rem; width: 12rem;
                   padding: 0.25rem 0.5rem; }
     .find button { font: inherit; font-size: 0.85rem; padding: 0.25rem 0.8rem; }
-    .find a { color: #6b7178; font-size: 0.85rem; margin-left: 0.6rem; }
+    .find a { color: #5a5a5a; font-size: 0.85rem; margin-left: 0.6rem; }
 
     .head { display: flex; align-items: baseline; justify-content: space-between;
             gap: 1rem; flex-wrap: wrap; }
@@ -63,7 +80,7 @@
     .cross button { border: 0; background: none; color: #b6bcc2; cursor: pointer;
                     font: inherit; padding: 0; opacity: 0; }
     tr:hover .cross button, .cross button:focus-visible { opacity: 1; }
-    .cross button:hover { color: #1a1f24; }
+    .cross button:hover { color: #000; }
 
     .start { margin: 1.8rem 0 0; }
     .start h2 { margin-top: 1.4rem; }
@@ -74,18 +91,18 @@
     .below { margin-top: 3.5rem; }
     .below h2 { margin-top: 1.6rem; }
     .below h2.apart { margin-top: 2.5rem; }
-    .below summary { color: #6b7178; font-size: 0.9rem; cursor: pointer; }
+    .below summary { color: #5a5a5a; font-size: 0.9rem; cursor: pointer; }
 
     .join { margin: 0 0 0.4rem; }
     .join input { font: inherit; font-size: 0.9rem; width: 13rem;
                   padding: 0.25rem 0.5rem; }
     .join button { font: inherit; font-size: 0.85rem; padding: 0.25rem 0.8rem; }
-    .said { color: #1a1f24; font-size: 0.88rem; margin: 0.8rem 0 0; }
+    .said { color: #000; font-size: 0.88rem; margin: 0.8rem 0 0; }
 
-    .stop { border: 0; background: none; color: #6b7178; font: inherit;
+    .stop { border: 0; background: none; color: #5a5a5a; font: inherit;
             font-size: 0.85rem; padding: 0; margin-top: 2rem;
             text-decoration: underline; cursor: pointer; }
-    .stop:hover { color: #1a1f24; }
+    .stop:hover { color: #000; }
 
     .card { margin: 2.5rem 0 0; }
     .card label { display: inline-block; margin: 0 1rem 0.3rem 0; font-size: 0.9rem; }
@@ -115,7 +132,6 @@
     {{if .Now.Playing}}
     <section class="now" data-gone="{{.Now.Gone}}" data-whole="{{.Now.Whole}}"
              data-paused="{{.Now.Paused}}">
-        <p class="label">Now</p>
         <p class="what">{{.Now.Title}}</p>
         <p class="who">{{if .Now.By}}{{.Now.By}} · {{end}}{{.Now.Service}}{{if
         .Now.Paused}} · paused{{end}}</p>
