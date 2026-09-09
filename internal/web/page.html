@@ -22,7 +22,7 @@
 
     .now { margin: 2rem 0 2.6rem; }
     .now .label { color: #6b7178; font-size: 0.78rem; margin: 0 0 0.4rem; }
-    .now .what { font-size: 1.3rem; line-height: 1.3; margin: 0; }
+    .now .what { font-size: 1.3rem; line-height: 1.3; margin: 0; max-width: 34rem; }
     .now .who { color: #6b7178; margin: 0.15rem 0 0.9rem; font-size: 0.9rem; }
 
     .bar { height: 4px; background: #e4e2dd; }
@@ -37,6 +37,7 @@
 
     table { border-collapse: collapse; width: 100%; }
     td { padding: 0.45rem 1rem 0.45rem 0; vertical-align: baseline; }
+    .title { max-width: 26rem; }
     td:first-child { color: #6b7178; width: 7rem; }
     td:last-child { color: #6b7178; white-space: nowrap; text-align: right;
                     padding-right: 0; }
@@ -165,7 +166,9 @@
         {{range .Plays}}
         <tr>
             <td>{{.Service}}</td>
-            <td><a href="{{.URL}}">{{if .Title}}{{.Title}}{{else}}{{.ID}}{{end}}</a></td>
+            <td class="title">
+                <a href="{{.URL}}">{{if .Title}}{{.Title}}{{else}}{{.ID}}{{end}}</a>
+            </td>
             <td>{{if .Seconds}}{{hours .Seconds}}{{else if and $.Now.Playing
                 (eq .Service $.Now.Service) (eq .ID $.Now.ID)}}<span
                 class="quiet">playing</span>{{end}}</td>
@@ -267,8 +270,21 @@ if (fill && now.dataset.paused !== 'true')
     const whole = Number(now.dataset.whole);
     const began = Date.now() - Number(now.dataset.gone) * 1000;
 
-    const clock = (seconds) => Math.floor(seconds / 60)
-        + ':' + String(Math.floor(seconds % 60)).padStart(2, '0');
+    // Hours only when there are any, and the same shape as the total beside
+    // it: two hours shown as 116:28 is arithmetic nobody asked to do.
+    const clock = (seconds) =>
+    {
+        const whole = Math.floor(seconds);
+        const pair = (n) => String(n).padStart(2, '0');
+
+        if (whole < 3600)
+        {
+            return Math.floor(whole / 60) + ':' + pair(whole % 60);
+        }
+
+        return Math.floor(whole / 3600) + ':'
+            + pair(Math.floor(whole / 60) % 60) + ':' + pair(whole % 60);
+    };
 
     const draw = () =>
     {
