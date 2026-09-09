@@ -5,13 +5,17 @@ package main
 import (
 	"errors"
 	"os/exec"
+	"syscall"
 )
 
-// A window of its own rather than a tab. start is used rather than a path:
-// it goes through the registry that knows where browsers live.
+// start goes through the registry that knows where browsers live, so no path
+// has to be guessed at. HideWindow keeps the console it runs in out of sight.
 func window(address string) error {
 	for _, browser := range []string{"msedge", "chrome"} {
-		if err := exec.Command("cmd", "/c", "start", "", browser, "--app="+address).Run(); err == nil {
+		made := exec.Command("cmd", "/c", "start", "", browser, "--app="+address)
+		made.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+
+		if err := made.Run(); err == nil {
 			return nil
 		}
 	}
