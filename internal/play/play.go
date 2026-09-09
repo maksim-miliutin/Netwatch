@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -434,7 +435,68 @@ func Shown(name string) string {
 // Kinds are the sorts of service there are, in the order a page should list
 // them: what people watch most first.
 func Kinds() []string {
-	return []string{"Video", "Streams", "Films", "Music"}
+	kinds := []string{"Video", "Streams", "Films", "Music"}
+
+	if len(mine()) > 0 {
+		kinds = append(kinds, Yours)
+	}
+
+	return kinds
+}
+
+// Yours is where services somebody added themselves are listed.
+const Yours = "Yours"
+
+// Added at the start from a file and by the page. A service somebody adds
+// brings no rule for reading its addresses, so it is treated the way Yandex
+// Music is: the page is asked what is on.
+var (
+	minding sync.Mutex
+	added   []Service
+)
+
+func Add(host, shown string) {
+	host = strings.TrimSpace(strings.ToLower(host))
+	shown = strings.TrimSpace(shown)
+
+	if host == "" {
+		return
+	}
+
+	if shown == "" {
+		shown = host
+	}
+
+	minding.Lock()
+	defer minding.Unlock()
+
+	for _, one := range added {
+		if one.Name == host {
+			return
+		}
+	}
+
+	added = append(added, Service{
+		Name:     host,
+		Shown:    shown,
+		Kind:     Yours,
+		Hosts:    []string{host, "www." + host},
+		Unnamed:  true,
+		Watching: func(*url.URL) string { return "" },
+	})
+}
+
+func mine() []Service {
+	minding.Lock()
+	defer minding.Unlock()
+
+	return append([]Service(nil), added...)
+}
+
+// all is the list this knows, the ones it was born with and the ones somebody
+// added since.
+func all() []Service {
+	return append(append([]Service(nil), services...), mine()...)
 }
 
 func Kind(name string) string {
@@ -452,7 +514,7 @@ func Heard(name string) bool {
 }
 
 func find(name string) (Service, bool) {
-	for _, service := range services {
+	for _, service := range all() {
 		if service.Name == name {
 			return service, true
 		}
@@ -464,7 +526,7 @@ func find(name string) (Service, bool) {
 func Services() []string {
 	names := make([]string, 0, len(services))
 
-	for _, service := range services {
+	for _, service := range all() {
 		names = append(names, service.Name)
 	}
 
@@ -477,7 +539,7 @@ func Recognise(address, title string, at time.Time) (Play, bool) {
 		return Play{}, false
 	}
 
-	for _, service := range services {
+	for _, service := range all() {
 		if !holds(service.Hosts, parsed.Host) {
 			continue
 		}
@@ -527,7 +589,7 @@ func Reported(address, title string, at time.Time) (Play, bool) {
 		return Play{}, false
 	}
 
-	for _, service := range services {
+	for _, service := range all() {
 		if !holds(service.Hosts, parsed.Host) || !service.Unnamed {
 			continue
 		}

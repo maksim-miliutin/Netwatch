@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"netwatch/internal/mine"
 	"netwatch/internal/now"
 	"netwatch/internal/play"
 	"netwatch/internal/quiet"
@@ -28,6 +29,17 @@ func hushed(t *testing.T) *quiet.List {
 	return list
 }
 
+func own(t *testing.T) *mine.List {
+	t.Helper()
+
+	list, err := mine.Open(filepath.Join(t.TempDir(), "services"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	return list
+}
+
 func serving(t *testing.T) http.Handler {
 	t.Helper()
 
@@ -36,7 +48,7 @@ func serving(t *testing.T) http.Handler {
 		t.Fatal(err)
 	}
 
-	return (&Server{Store: kept, Watching: now.New(), Quiet: hushed(t)}).Routes()
+	return (&Server{Store: kept, Watching: now.New(), Quiet: hushed(t), Mine: own(t)}).Routes()
 }
 
 func post(t *testing.T, handler http.Handler, body string) *httptest.ResponseRecorder {
@@ -281,7 +293,7 @@ func TestDrawsOnlySoMuchOfTheList(t *testing.T) {
 		}
 	}
 
-	handler := (&Server{Store: kept, Watching: now.New(), Quiet: hushed(t)}).Routes()
+	handler := (&Server{Store: kept, Watching: now.New(), Quiet: hushed(t), Mine: own(t)}).Routes()
 	page := shown(t, handler)
 
 	if strings.Count(page, "<tr>") != Shows {
@@ -561,5 +573,32 @@ func TestSaysWhetherItIsWorking(t *testing.T) {
 	// The two things are done, so the block that said to do them is gone.
 	if strings.Contains(after, "Two things to do") {
 		t.Error("still telling somebody to start")
+	}
+}
+
+// A site somebody adds brings no rule for reading its addresses, and needs
+// none: the page names what it plays.
+func TestTakesASiteSomebodyAdds(t *testing.T) {
+	handler := serving(t)
+
+	body := strings.NewReader("host=https://plvideo.ru/some/path&shown=Plvideo")
+
+	request := httptest.NewRequest("POST", "/api/services", body)
+	request.Host = "127.0.0.1:7373"
+	request.RemoteAddr = "127.0.0.1:5000"
+	request.Header.Set("content-type", "application/x-www-form-urlencoded")
+	request.Header.Set("origin", "http://127.0.0.1:7373")
+
+	answer := httptest.NewRecorder()
+	Near(handler).ServeHTTP(answer, request)
+
+	if answer.Code != http.StatusSeeOther {
+		t.Fatalf("got %d %s", answer.Code, answer.Body)
+	}
+
+	// The address had a scheme and a path on it, and only the host is a host.
+	one, ok := play.Reported("https://plvideo.ru/watch/abc", "Нечто", time.Now())
+	if !ok || one.Service != "plvideo.ru" || one.Title != "Нечто" {
+		t.Errorf("got %+v %v", one, ok)
 	}
 }

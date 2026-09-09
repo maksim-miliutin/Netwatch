@@ -165,7 +165,7 @@
     <section class="now" data-gone="{{.Now.Gone}}" data-whole="{{.Now.Whole}}"
              data-paused="{{.Now.Paused}}">
         <p class="what">{{.Now.Title}}</p>
-        <p class="who">{{if .Now.By}}{{.Now.By}} · {{end}}{{.Now.Service}}{{if
+        <p class="who">{{if .Now.By}}{{.Now.By}} · {{end}}{{shown .Now.Service}}{{if
         .Now.Paused}} · paused{{end}}</p>
 
         {{if .Now.Whole}}
@@ -182,7 +182,7 @@
 
     <ul>
         {{range .Services}}
-        <li>{{.Name}} — {{if .Seconds}}{{hours .Seconds}}{{else}}{{times .Plays}}{{end}}</li>
+        <li>{{shown .Name}} — {{if .Seconds}}{{hours .Seconds}}{{else}}{{times .Plays}}{{end}}</li>
         {{end}}
     </ul>
 
@@ -214,7 +214,7 @@
     <table>
         {{range .Plays}}
         <tr>
-            <td>{{.Service}}</td>
+            <td>{{shown .Service}}</td>
             <td class="title">
                 <a href="{{.URL}}">{{if .Title}}{{.Title}}{{else}}{{.ID}}{{end}}</a>
             </td>
@@ -287,6 +287,17 @@
         {{end}}
 
         <div><button>Save</button></div>
+    </form>
+
+    <h2 class="apart">Add a site</h2>
+    <p class="quiet">Anything with a video or a sound on it. netwatch cannot
+    read a strange address, so it asks the page instead — which is how it knows
+    what Yandex Music is playing.</p>
+
+    <form class="join" method="post" action="/api/services">
+        <input type="text" name="host" placeholder="example.com" autocomplete="off">
+        <input type="text" name="shown" placeholder="name" autocomplete="off">
+        <button>Add</button>
     </form>
 
     <form method="post" action="/api/quit">

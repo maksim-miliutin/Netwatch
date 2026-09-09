@@ -19,7 +19,9 @@ import (
 	"time"
 
 	"netwatch/internal/discord"
+	"netwatch/internal/mine"
 	"netwatch/internal/now"
+	"netwatch/internal/play"
 	"netwatch/internal/quiet"
 	"netwatch/internal/store"
 	"netwatch/internal/takeout"
@@ -27,11 +29,9 @@ import (
 )
 
 // The application everybody who runs this uses, unless they put in their own.
-// Rich Presence does not care who owns the number: it says which name Discord
+// Rich Presence does not care who owns the number: it decides the name Discord
 // writes above the card and where the pictures come from, and nothing else.
-// Empty means nobody has made one for this project yet, and the card waits to
-// be told a number by hand.
-const Application = ""
+const Application = "1546852021934751804"
 
 func main() {
 	port := flag.Int("port", 7373, "where to listen, on this machine only")
@@ -80,6 +80,15 @@ func main() {
 		defer written.Close()
 	}
 
+	own, err := mine.Open(filepath.Join(filepath.Dir(where), "services"))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for host, shown := range own.All() {
+		play.Add(host, shown)
+	}
+
 	watching := now.New()
 	said := &latest{}
 
@@ -96,6 +105,7 @@ func main() {
 		Store:    kept,
 		Watching: watching,
 		Quiet:    hushed,
+		Mine:     own,
 		Says:     said.last,
 		Quitting: func() { os.Exit(0) },
 		Id:       id,

@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"netwatch/internal/mine"
 	"netwatch/internal/now"
 	"netwatch/internal/play"
 	"netwatch/internal/quiet"
@@ -39,6 +40,7 @@ var mark []byte
 // Minutes and hours rather than seconds: nobody counts a week in seconds.
 var page = template.Must(template.New("page").Funcs(template.FuncMap{
 	"hours": hours,
+	"shown": play.Shown,
 	"times": times,
 	"clock": clock,
 }).Parse(pageSource))
@@ -67,6 +69,7 @@ type Server struct {
 	Store    *store.Store
 	Watching *now.Watch
 	Quiet    *quiet.List
+	Mine     *mine.List
 
 	// The last thing the card had to say, for the popup. Nil when nobody is
 	// telling: the card is off, or this is a test.
@@ -91,6 +94,7 @@ func (s *Server) Routes() *http.ServeMux {
 	mux.HandleFunc("POST /api/gone", s.gone)
 	mux.HandleFunc("GET /api/now", s.showing)
 	mux.HandleFunc("POST /api/quiet", s.hiding)
+	mux.HandleFunc("POST /api/services", s.adding)
 	mux.HandleFunc("POST /api/quit", s.quit)
 	mux.HandleFunc("POST /api/discord", s.joining)
 	mux.HandleFunc("GET /icon.png", s.icon)
@@ -457,6 +461,35 @@ func (s *Server) choices() []Sort {
 	}
 
 	return sorts
+}
+
+// A site somebody adds brings no rule for reading its addresses, and needs
+// none: what it plays is named by the page, the way Yandex Music is.
+func (s *Server) adding(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil || s.Mine == nil {
+		http.Error(w, "unreadable", http.StatusBadRequest)
+
+		return
+	}
+
+	host := strings.TrimSpace(strings.ToLower(r.FormValue("host")))
+	host = strings.TrimPrefix(strings.TrimPrefix(host, "https://"), "http://")
+	host, _, _ = strings.Cut(host, "/")
+
+	if host == "" {
+		back(w, r)
+
+		return
+	}
+
+	if err := s.Mine.Add(host, r.FormValue("shown")); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+
+		return
+	}
+
+	play.Add(host, r.FormValue("shown"))
+	back(w, r)
 }
 
 func (s *Server) hiding(w http.ResponseWriter, r *http.Request) {
