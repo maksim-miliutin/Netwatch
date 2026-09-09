@@ -243,3 +243,33 @@ func TestStillIgnoresWhatIsNotAWatch(t *testing.T) {
 		}
 	}
 }
+
+// A tab is called "Нечто — YouTube", with the unread count in front of it.
+func TestTidiesUpATabTitle(t *testing.T) {
+	for title, wanted := range map[string]string{
+		"(4) Transit: Dark Ambient - YouTube": "Transit: Dark Ambient",
+		"Bottom bracket — YouTube":            "Bottom bracket",
+		"Нечто | YouTube":                     "Нечто",
+		"(12) Нечто":                          "Нечто",
+		"Bottom bracket":                      "Bottom bracket",
+
+		// The name of the site on its own is all a page says before it has
+		// loaded, and it is not the name of anything.
+		"YouTube": "YouTube",
+	} {
+		one, ok := Recognise("https://youtu.be/abc", title, time.Now())
+
+		if !ok || one.Title != wanted {
+			t.Errorf("%q became %q", title, one.Title)
+		}
+	}
+}
+
+// A title that happens to end in a word like the service keeps it.
+func TestLeavesATitleThatOnlyLooksLikeTheSite(t *testing.T) {
+	one, _ := Recognise("https://youtu.be/abc", "How YouTube works", time.Now())
+
+	if one.Title != "How YouTube works" {
+		t.Errorf("got %q", one.Title)
+	}
+}

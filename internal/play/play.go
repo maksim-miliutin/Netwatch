@@ -3,6 +3,7 @@ package play
 
 import (
 	"net/url"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -428,7 +429,7 @@ func Recognise(address, title string, at time.Time) (Play, bool) {
 		return Play{
 			Service: service.Name,
 			ID:      id,
-			Title:   strings.TrimSpace(title),
+			Title:   tidy(title, service.Name),
 			URL:     address,
 			At:      at.UTC(),
 		}, true
@@ -436,6 +437,25 @@ func Recognise(address, title string, at time.Time) (Play, bool) {
 
 	return Play{}, false
 }
+
+// A tab is called "Нечто — YouTube", and a browser puts the number of unread
+// notifications in front of that. Neither is the name of anything watched.
+func tidy(title, service string) string {
+	title = strings.TrimSpace(counted.ReplaceAllString(title, ""))
+
+	name := strings.ToLower(Shown(service))
+	low := strings.ToLower(title)
+
+	for _, apart := range []string{" - ", " — ", " – ", " | "} {
+		if end := strings.LastIndex(low, apart+name); end > 0 {
+			return strings.TrimSpace(title[:end])
+		}
+	}
+
+	return title
+}
+
+var counted = regexp.MustCompile(`^\(\d+\)\s*`)
 
 func holds(hosts []string, host string) bool {
 	for _, one := range hosts {

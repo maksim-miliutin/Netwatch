@@ -10,6 +10,9 @@ const SITES = 'YouTube|RUTUBE|Rutube|VK Видео|ВКонтакте|Twitch|Д�
 
 const TAIL = new RegExp(`\\s*[-—|]\\s*(${SITES})\\s*$`);
 
+// What a browser puts in front of a tab title when messages are waiting.
+const COUNTED = /^\(\d+\)\s*/;
+
 function named(): { title: string; by: string }
 {
     const said = navigator.mediaSession.metadata;
@@ -19,7 +22,7 @@ function named(): { title: string; by: string }
         return { title: said.title, by: said.artist ?? '' };
     }
 
-    return { title: document.title.replace(TAIL, ''), by: '' };
+    return { title: document.title.replace(COUNTED, '').replace(TAIL, ''), by: '' };
 }
 
 // A preview may play muted beside the thing somebody came for.
@@ -56,6 +59,14 @@ function say(): void
     }
 
     const { title, by } = named();
+
+    // Before a page has said what it plays, it is called after the site. The
+    // tick comes round in ten seconds, by which time it has, and a card that
+    // says "YouTube" is worse than one that waits.
+    if (!title || SITES.split('|').includes(title))
+    {
+        return;
+    }
 
     send(
     {
