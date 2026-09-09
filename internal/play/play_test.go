@@ -273,3 +273,37 @@ func TestLeavesATitleThatOnlyLooksLikeTheSite(t *testing.T) {
 		t.Errorf("got %q", one.Title)
 	}
 }
+
+// Yandex Music plays from a page called /home, with the track in a bar at the
+// foot of it. The address never says what is on; the page does.
+func TestTakesWhatThePageSaysWhenTheAddressWillNot(t *testing.T) {
+	one, ok := Reported("https://music.yandex.ru/home", "Молчат дома — Судно", time.Now())
+
+	if !ok || one.Service != "yandex-music" || one.Title != "Молчат дома — Судно" {
+		t.Errorf("got %+v %v", one, ok)
+	}
+
+	if one.ID != one.Title {
+		t.Errorf("id is %q", one.ID)
+	}
+}
+
+func TestSaysNothingForAPageWithNoName(t *testing.T) {
+	if _, ok := Reported("https://music.yandex.ru/home", "  ", time.Now()); ok {
+		t.Error("made a play out of an empty name")
+	}
+}
+
+func TestSaysNothingForAServiceItDoesNotKnow(t *testing.T) {
+	if _, ok := Reported("https://example.com/x", "Something", time.Now()); ok {
+		t.Error("took a service it never heard of")
+	}
+}
+
+// A search on YouTube is a page of the service, and the page saying so does
+// not make it a watch. Only a service that never names what is on gets asked.
+func TestDoesNotTakeThePageAtItsWordEverywhere(t *testing.T) {
+	if _, ok := Reported("https://www.youtube.com/results?q=нечто", "Поиск", time.Now()); ok {
+		t.Error("made a play out of a search page")
+	}
+}

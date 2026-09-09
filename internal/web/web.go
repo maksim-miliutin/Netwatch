@@ -234,6 +234,13 @@ func (s *Server) playing(w http.ResponseWriter, r *http.Request) {
 	at := time.Now()
 
 	one, ok := play.Recognise(said.URL, said.Title, at)
+
+	// A player that keeps the track out of the address leaves the page as the
+	// only one who knows what is on.
+	if !ok {
+		one, ok = play.Reported(said.URL, said.Title, at)
+	}
+
 	if !ok {
 		s.Watching.Nothing()
 		answer(w, map[string]bool{"kept": false})

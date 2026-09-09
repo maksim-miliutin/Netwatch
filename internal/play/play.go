@@ -34,6 +34,11 @@ type Service struct {
 	// says out loud above the card.
 	Heard bool
 
+	// Unnamed is a service whose address never says what is on. Yandex Music
+	// plays from a page called /home with the track in a bar at the foot of
+	// it; asking the address is asking the wrong one.
+	Unnamed bool
+
 	// Watching answers what is being watched here, and nothing when the page
 	// is not a watch at all: a search on YouTube is still YouTube.
 	Watching func(*url.URL) string
@@ -67,10 +72,11 @@ var services = []Service{
 		},
 	},
 	{
-		Name:  "yandex-music",
-		Shown: "Yandex Music",
-		Heard: true,
-		Hosts: []string{"music.yandex.ru", "music.yandex.com"},
+		Name:    "yandex-music",
+		Shown:   "Yandex Music",
+		Heard:   true,
+		Unnamed: true,
+		Hosts:   []string{"music.yandex.ru", "music.yandex.com"},
 		Watching: func(u *url.URL) string {
 			// The album on its own is a page somebody browsed rather than heard.
 			return after(u.Path, "/track/")
@@ -456,6 +462,39 @@ func tidy(title, service string) string {
 }
 
 var counted = regexp.MustCompile(`^\(\d+\)\s*`)
+
+// Reported is a play the page named because the address would not. Some
+// players keep the track out of the address: it sits in a bar at the foot of
+// a page called /home, and the page is the only one who knows what is on.
+func Reported(address, title string, at time.Time) (Play, bool) {
+	parsed, err := url.Parse(address)
+	if err != nil || parsed.Host == "" {
+		return Play{}, false
+	}
+
+	for _, service := range services {
+		if !holds(service.Hosts, parsed.Host) || !service.Unnamed {
+			continue
+		}
+
+		name := tidy(title, service.Name)
+		if name == "" {
+			return Play{}, false
+		}
+
+		// The name does for an id: telling one track from the next is the
+		// whole of what an id is for.
+		return Play{
+			Service: service.Name,
+			ID:      name,
+			Title:   name,
+			URL:     address,
+			At:      at.UTC(),
+		}, true
+	}
+
+	return Play{}, false
+}
 
 func holds(hosts []string, host string) bool {
 	for _, one := range hosts {
