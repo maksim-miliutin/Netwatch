@@ -158,3 +158,35 @@ func sleeping() *Presence {
 		heard:    bufio.NewReader(pipe),
 	}
 }
+
+// A Discord that is not there is ordinary rather than broken, and the loop has
+// to wait rather than spend the evening dialling a socket nobody put there.
+func TestWaitsBeforeLookingForAClientAgain(t *testing.T) {
+	var said []string
+
+	f := &follower{
+		id:       "424242",
+		watching: now.New(),
+		say:      func(text string) { said = append(said, text) },
+	}
+
+	at := time.Now()
+
+	f.turn(at)
+
+	if f.to != nil {
+		t.Fatal("found a client on a machine with none")
+	}
+
+	if !f.again.After(at) {
+		t.Error("did not put the next try off")
+	}
+
+	// Turning again inside the wait must not go near the socket, and must not
+	// say the same thing twice.
+	f.turn(at.Add(time.Second))
+
+	if len(said) != 1 {
+		t.Errorf("said %v", said)
+	}
+}
