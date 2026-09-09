@@ -5,96 +5,139 @@
 <title>netwatch</title>
 <link rel="icon" type="image/png" href="/icon.png">
 <style>
-    body {
-        max-width: 44rem;
-        margin: 3rem auto;
-        padding: 0 1.5rem;
-        font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-        color: #000;
-        background: #fff;
+    /* Five sizes and six steps of space, and nothing outside them. Eight of
+       each, chosen one at a time, is what makes a page look assembled rather
+       than composed. */
+    :root {
+        --small: 0.8rem;
+        --quiet: 0.9rem;
+        --body: 1rem;
+        --large: 1.3rem;
+        --title: 1.55rem;
+
+        --step: 0.25rem;
+        --tight: 0.5rem;
+        --gap: 1rem;
+        --apart: 1.6rem;
+        --far: 2.6rem;
+        --end: 4rem;
+
+        --paper: #fff;
+        --ink: #000;
+        --faint: #5a5a5a;
+        --rule: #e6e6e6;
+        --live: #c1121f;
     }
 
-    h1 { font-size: 1.5rem; margin: 0 0 0.2rem; }
+    /* A program that runs all day sits beside a Discord that is dark, and a
+       white page in a dark room is a lamp. */
+    @media (prefers-color-scheme: dark) {
+        :root {
+            --paper: #101010;
+            --ink: #ededed;
+            --faint: #9a9a9a;
+            --rule: #2b2b2b;
+            --live: #ff4d3d;
+        }
+    }
 
-    h2 { font-size: 0.95rem; font-weight: 600; margin: 2.5rem 0 0.6rem; }
+    * { box-sizing: border-box; }
 
-    p { margin: 0.4rem 0; }
+    body {
+        max-width: 44rem;
+        margin: var(--far) auto;
+        padding: 0 1.5rem;
+        font: var(--body)/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        color: var(--ink);
+        background: var(--paper);
+    }
+
+    h1 { font-size: var(--title); font-weight: 600; margin: 0 0 var(--step); }
+    h2 { font-size: var(--body); font-weight: 600; margin: var(--far) 0 var(--tight); }
+    p { margin: var(--step) 0; }
     b, td, .times { font-variant-numeric: tabular-nums; }
 
-    .lead, .quiet { color: #5a5a5a; font-size: 0.9rem; }
-
-    .now { margin: 2rem 0 2.6rem; }
-    .now .what { font-size: 1.3rem; line-height: 1.3; margin: 0; max-width: 34rem; }
-
-    .now .who { color: #5a5a5a; margin: 0.25rem 0 1rem; font-size: 0.9rem; }
-
-    /* The one loud thing on the page, and the only red on it: a bar that is
-       running is the whole of what this program is for. */
-    .bar { height: 4px; background: #e6e6e6; }
-    .bar i { display: block; height: 100%; width: 0; background: #c1121f; }
-    .times { display: flex; justify-content: space-between; margin: 0.4rem 0 0;
-             color: #5a5a5a; font-size: 0.8rem; }
-
-    .day { display: flex; justify-content: space-between; align-items: baseline;
-           margin: 1.8rem 0 0.2rem; font-size: 0.85rem; color: #5a5a5a; }
-
-    ul { padding-left: 1.1rem; margin: 0.5rem 0; }
-
-    table { border-collapse: collapse; width: 100%; }
-    td { padding: 0.45rem 1rem 0.45rem 0; vertical-align: baseline; }
-    .title { max-width: 26rem; }
-    td:first-child { color: #5a5a5a; width: 7rem; }
-    td:last-child { color: #5a5a5a; white-space: nowrap; text-align: right;
-                    padding-right: 0; }
-
     a { color: inherit; }
+    a:focus-visible, button:focus-visible, input:focus-visible, summary:focus-visible {
+        outline: 2px solid var(--live);
+        outline-offset: 2px;
+    }
 
-    .find { margin: 0 0 0.6rem; }
-    .find input { font: inherit; font-size: 0.9rem; width: 12rem;
-                  padding: 0.25rem 0.5rem; }
-    .find button { font: inherit; font-size: 0.85rem; padding: 0.25rem 0.8rem; }
-    .find a { color: #5a5a5a; font-size: 0.85rem; margin-left: 0.6rem; }
+    .lead, .quiet { color: var(--faint); font-size: var(--quiet); }
+
+    .start { margin: var(--apart) 0 0; }
+    .start h2 { margin-top: var(--gap); }
+    .start p { margin: var(--tight) 0; }
+
+    /* The one thing on this page worth looking at, and the only red on it. */
+    .now { margin: var(--apart) 0 var(--far); }
+    .now .what { font-size: var(--large); line-height: 1.3; margin: 0; max-width: 32rem; }
+    .now .who { color: var(--faint); font-size: var(--quiet);
+                margin: var(--step) 0 var(--gap); }
+
+    .bar { height: 4px; background: var(--rule); }
+    .bar i { display: block; height: 100%; width: 0; background: var(--live); }
+    .times { display: flex; justify-content: space-between; margin: var(--tight) 0 0;
+             color: var(--faint); font-size: var(--small); }
+
+    ul { padding-left: 1.1rem; margin: var(--tight) 0; }
 
     .head { display: flex; align-items: baseline; justify-content: space-between;
-            gap: 1rem; flex-wrap: wrap; }
-    .head h2 { margin-bottom: 0.2rem; }
+            gap: var(--gap); flex-wrap: wrap; }
+    .head h2 { margin-bottom: var(--step); }
 
+    .find { margin: 0 0 var(--tight); }
+    .find input { font: inherit; font-size: var(--quiet); width: 12rem;
+                  padding: var(--step) var(--tight); }
+    .find button { font: inherit; font-size: var(--small); padding: var(--step) 0.8rem; }
+    .find a { color: var(--faint); font-size: var(--small); margin-left: var(--tight); }
+
+    .day { display: flex; justify-content: space-between; align-items: baseline;
+           margin: var(--apart) 0 var(--step); font-size: var(--small);
+           color: var(--faint); }
+
+    table { border-collapse: collapse; width: 100%; }
+    td { padding: var(--step) var(--gap) var(--step) 0; vertical-align: baseline; }
+    td:first-child { color: var(--faint); width: 7rem; }
+    td:last-child { color: var(--faint); white-space: nowrap; text-align: right;
+                    padding-right: 0; }
+    .title { max-width: 26rem; }
+
+    /* Two hundred crosses down a page is two hundred things to look past. */
     .cross { width: 1.5rem; }
     .cross form { display: inline; }
-
-    /* Two hundred crosses down the page is two hundred things to look past.
-       The one under the hand is the only one anybody wants. */
-    .cross button { border: 0; background: none; color: #b6bcc2; cursor: pointer;
+    .cross button { border: 0; background: none; color: var(--rule); cursor: pointer;
                     font: inherit; padding: 0; opacity: 0; }
     tr:hover .cross button, .cross button:focus-visible { opacity: 1; }
-    .cross button:hover { color: #000; }
+    .cross button:hover { color: var(--ink); }
 
-    .start { margin: 1.8rem 0 0; }
-    .start h2 { margin-top: 1.4rem; }
-    .start p { margin: 0.6rem 0; }
+    .foot { margin-top: var(--gap); }
 
-    .foot { margin-top: 1.4rem; }
+    .below { margin-top: var(--end); }
+    .below h2 { margin-top: var(--apart); }
+    .below h2.apart { margin-top: var(--far); }
+    .below summary { color: var(--faint); font-size: var(--quiet); cursor: pointer; }
 
-    .below { margin-top: 3.5rem; }
-    .below h2 { margin-top: 1.6rem; }
-    .below h2.apart { margin-top: 2.5rem; }
-    .below summary { color: #5a5a5a; font-size: 0.9rem; cursor: pointer; }
+    .join { margin: 0 0 var(--step); }
+    .join input { font: inherit; font-size: var(--quiet); width: 13rem;
+                  padding: var(--step) var(--tight); }
+    .join button { font: inherit; font-size: var(--small); padding: var(--step) 0.8rem; }
+    .said { color: var(--ink); font-size: var(--quiet); margin: var(--tight) 0 0; }
 
-    .join { margin: 0 0 0.4rem; }
-    .join input { font: inherit; font-size: 0.9rem; width: 13rem;
-                  padding: 0.25rem 0.5rem; }
-    .join button { font: inherit; font-size: 0.85rem; padding: 0.25rem 0.8rem; }
-    .said { color: #000; font-size: 0.88rem; margin: 0.8rem 0 0; }
+    .card { margin: var(--far) 0 0; }
+    .card label { display: inline-block; margin: 0 var(--gap) var(--step) 0;
+                  font-size: var(--quiet); }
+    .card button { margin-top: var(--tight); font: inherit; font-size: var(--small);
+                   padding: var(--step) 0.9rem; }
 
-    .stop { border: 0; background: none; color: #5a5a5a; font: inherit;
-            font-size: 0.85rem; padding: 0; margin-top: 2rem;
+    .stop { border: 0; background: none; color: var(--faint); font: inherit;
+            font-size: var(--small); padding: 0; margin-top: var(--far);
             text-decoration: underline; cursor: pointer; }
-    .stop:hover { color: #000; }
+    .stop:hover { color: var(--ink); }
 
-    .card { margin: 2.5rem 0 0; }
-    .card label { display: inline-block; margin: 0 1rem 0.3rem 0; font-size: 0.9rem; }
-    .card button { margin-top: 0.6rem; font: inherit; font-size: 0.85rem;
-                   padding: 0.3rem 0.9rem; }
+    @media (prefers-reduced-motion: reduce) {
+        .bar i { transition: none; }
+    }
 </style>
 </head>
 <body>
