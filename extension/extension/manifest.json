@@ -1,0 +1,122 @@
+{
+    "manifest_version": 3,
+    "name": "netwatch",
+    "version": "0.2.0",
+    "description": "Рассказывает netwatch на этой машине, что открыто. Больше никуда.",
+    "permissions": [
+        "tabs",
+        "storage",
+        "scripting"
+    ],
+    "host_permissions": [
+        "http://127.0.0.1/*"
+    ],
+    "background": {
+        "service_worker": "dist/worker.js"
+    },
+    "content_scripts": [
+        {
+            "matches": [
+                "https://youtube.com/*",
+                "https://*.youtube.com/*",
+                "https://youtu.be/*",
+                "https://rutube.ru/*",
+                "https://*.rutube.ru/*",
+                "https://music.yandex.ru/*",
+                "https://music.yandex.com/*",
+                "https://vk.com/*",
+                "https://*.vk.com/*",
+                "https://vkvideo.ru/*",
+                "https://*.vkvideo.ru/*",
+                "https://twitch.tv/*",
+                "https://*.twitch.tv/*",
+                "https://dzen.ru/*",
+                "https://*.dzen.ru/*",
+                "https://ok.ru/*",
+                "https://*.ok.ru/*",
+                "https://vimeo.com/*",
+                "https://*.vimeo.com/*",
+                "https://dailymotion.com/*",
+                "https://*.dailymotion.com/*",
+                "https://coub.com/*",
+                "https://*.coub.com/*",
+                "https://netflix.com/*",
+                "https://*.netflix.com/*",
+                "https://kinopoisk.ru/*",
+                "https://*.kinopoisk.ru/*",
+                "https://okko.tv/*",
+                "https://*.okko.tv/*",
+                "https://ivi.ru/*",
+                "https://*.ivi.ru/*",
+                "https://wink.ru/*",
+                "https://*.wink.ru/*",
+                "https://premier.one/*",
+                "https://*.premier.one/*",
+                "https://kick.com/*",
+                "https://*.kick.com/*",
+                "https://live.vkplay.ru/*",
+                "https://vkplay.live/*",
+                "https://open.spotify.com/*",
+                "https://play.spotify.com/*",
+                "https://soundcloud.com/*",
+                "https://*.soundcloud.com/*",
+                "https://music.apple.com/*",
+                "https://tv.apple.com/*",
+                "https://deezer.com/*",
+                "https://*.deezer.com/*",
+                "https://zvuk.com/*",
+                "https://*.zvuk.com/*",
+                "https://sber-zvuk.com/*",
+                "https://mixcloud.com/*",
+                "https://*.mixcloud.com/*",
+                "https://tiktok.com/*",
+                "https://*.tiktok.com/*",
+                "https://bilibili.com/*",
+                "https://*.bilibili.com/*",
+                "https://crunchyroll.com/*",
+                "https://*.crunchyroll.com/*",
+                "https://disneyplus.com/*",
+                "https://*.disneyplus.com/*",
+                "https://max.com/*",
+                "https://*.max.com/*",
+                "https://primevideo.com/*",
+                "https://*.primevideo.com/*",
+                "https://hulu.com/*",
+                "https://*.hulu.com/*",
+                "https://nebula.tv/*",
+                "https://*.nebula.tv/*",
+                "https://odysee.com/*",
+                "https://*.odysee.com/*",
+                "https://nicovideo.jp/*",
+                "https://*.nicovideo.jp/*",
+                "https://trovo.live/*",
+                "https://*.trovo.live/*"
+            ],
+            "js": [
+                "dist/page.js"
+            ],
+            "run_at": "document_idle"
+        }
+    ],
+    "icons": {
+        "16": "icons/16.png",
+        "32": "icons/32.png",
+        "48": "icons/48.png",
+        "128": "icons/128.png"
+    },
+    "action": {
+        "default_popup": "popup.html",
+        "default_title": "netwatch",
+        "default_icon": {
+            "16": "icons/16.png",
+            "32": "icons/32.png"
+        }
+    },
+    "options_ui": {
+        "page": "options.html",
+        "open_in_tab": true
+    },
+    "optional_host_permissions": [
+        "*://*/*"
+    ]
+}
