@@ -95,6 +95,7 @@ func (s *Server) Routes() *http.ServeMux {
 	mux.HandleFunc("GET /api/now", s.showing)
 	mux.HandleFunc("POST /api/quiet", s.hiding)
 	mux.HandleFunc("POST /api/services", s.adding)
+	mux.HandleFunc("GET /api/mine", s.own)
 	mux.HandleFunc("POST /api/quit", s.quit)
 	mux.HandleFunc("POST /api/discord", s.joining)
 	mux.HandleFunc("GET /icon.png", s.icon)
@@ -461,6 +462,18 @@ func (s *Server) choices() []Sort {
 	}
 
 	return sorts
+}
+
+// What the extension asks for: the sites somebody added, which the browser has
+// never been told about. The ones this was born knowing are in the manifest.
+func (s *Server) own(w http.ResponseWriter, r *http.Request) {
+	if s.Mine == nil {
+		answer(w, map[string]string{})
+
+		return
+	}
+
+	answer(w, s.Mine.All())
 }
 
 // A site somebody adds brings no rule for reading its addresses, and needs

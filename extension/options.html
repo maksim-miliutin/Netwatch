@@ -19,6 +19,13 @@
     button { font: inherit; padding: 0.3rem 0.9rem; margin-left: 0.5rem; }
 
     .said { color: #6b7178; font-size: 0.85rem; margin-top: 1rem; }
+
+    h2 { font-size: 1rem; margin: 2.5rem 0 0.2rem; }
+
+    .site { display: flex; align-items: baseline; justify-content: space-between;
+            gap: 1rem; padding: 0.4rem 0; }
+    .site b { font-weight: 600; }
+    .site span { color: #6b7178; font-size: 0.85rem; }
 </style>
 </head>
 <body>
@@ -30,6 +37,12 @@
     <button id="save">Save</button>
 
     <p class="said" id="said"></p>
+
+    <h2>Sites you added</h2>
+    <p>netwatch knows them; the browser does not. It has to be asked for each
+    one, and only you can ask it.</p>
+
+    <div id="sites"></div>
     <script src="dist/options.js"></script>
 </body>
 </html>

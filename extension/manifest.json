@@ -5,7 +5,8 @@
     "description": "Рассказывает netwatch на этой машине, что открыто. Больше никуда.",
     "permissions": [
         "tabs",
-        "storage"
+        "storage",
+        "scripting"
     ],
     "host_permissions": [
         "http://127.0.0.1/*"
@@ -114,5 +115,8 @@
     "options_ui": {
         "page": "options.html",
         "open_in_tab": true
-    }
+    },
+    "optional_host_permissions": [
+        "*://*/*"
+    ]
 }
