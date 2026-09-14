@@ -52,7 +52,17 @@
         background: var(--paper);
     }
 
-    h1 { font-size: var(--title); font-weight: 600; margin: 0 0 var(--step); }
+    h1 { font-size: var(--title); font-weight: 600; margin: 0; }
+
+    .top { display: flex; align-items: baseline; justify-content: space-between;
+           gap: var(--gap); flex-wrap: wrap; margin-bottom: var(--step); }
+
+    /* Whoever needs this most cannot read the page it was buried in. */
+    .tongues button { border: 0; background: none; color: var(--faint);
+                      font: inherit; font-size: var(--small); cursor: pointer;
+                      padding: 0 0 0 var(--tight); }
+    .tongues button:hover { color: var(--ink); }
+    .tongues button:disabled { color: var(--ink); cursor: default; }
     h2 { font-size: var(--body); font-weight: 600; margin: var(--far) 0 var(--tight); }
     p { margin: var(--step) 0; }
     b, td, .times { font-variant-numeric: tabular-nums; }
@@ -160,7 +170,17 @@
 </style>
 </head>
 <body>
-    <h1>netwatch</h1>
+    <div class="top">
+        <h1>netwatch</h1>
+
+        <form class="tongues" method="post" action="/api/language">
+            {{range .Tongues}}
+            <button name="in" value="{{.Code}}"{{if .Spoken}} disabled{{end}}>
+                {{.Shown}}
+            </button>
+            {{end}}
+        </form>
+    </div>
     <p class="lead">{{.Working}}</p>
 
     {{if .Fresh}}
@@ -339,19 +359,6 @@
         </button>
     </form>
     {{end}}
-
-    </details>
-
-    <details class="part">
-    <summary><b>{{t "language"}}</b></summary>
-
-    <form class="join" method="post" action="/api/language">
-        {{range .Tongues}}
-        <button name="in" value="{{.Code}}"{{if .Spoken}} disabled{{end}}>
-            {{.Shown}}
-        </button>
-        {{end}}
-    </form>
 
     </details>
 
