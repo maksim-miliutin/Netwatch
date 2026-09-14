@@ -92,9 +92,21 @@
     .find button { font: inherit; font-size: var(--small); padding: var(--step) 0.8rem; }
     .find a { color: var(--faint); font-size: var(--small); margin-left: var(--tight); }
 
+    .aday { margin: var(--apart) 0 0; }
+    .aday[open] { margin-bottom: var(--apart); }
+
     .day { display: flex; justify-content: space-between; align-items: baseline;
-           margin: var(--apart) 0 var(--step); font-size: var(--small);
-           color: var(--faint); }
+           margin: 0; font-size: var(--small); color: var(--faint);
+           cursor: pointer; }
+
+    /* Where a day went, in one line. One accent and grey rather than a colour
+       for every service: nine colours in a row is a chart nobody reads. */
+    .spread { display: flex; height: 6px; gap: 1px; margin: var(--tight) 0; }
+    .spread i { display: block; background: var(--rule); }
+    .spread i:first-child { background: var(--live); }
+
+    .parts { display: flex; flex-wrap: wrap; column-gap: var(--gap);
+             margin: 0 0 var(--tight); font-size: var(--small); }
 
     table { border-collapse: collapse; width: 100%; }
     td { padding: var(--step) var(--gap) var(--step) 0; vertical-align: baseline; }
@@ -208,8 +220,22 @@
     </div>
 
     {{range .Days}}
-    <p class="day"><span>{{.Date}}</span>
-    {{if .Seconds}}<span>{{hours .Seconds}}</span>{{end}}</p>
+    <details class="aday"{{if .Open}} open{{end}}>
+    <summary class="day"><span>{{.Date}}</span>
+    {{if .Seconds}}<span>{{hours .Seconds}}</span>{{end}}</summary>
+
+    {{if .Spread}}
+    <div class="spread">
+        {{range .Spread}}
+        <i style="width: {{printf "%.2f" .Part}}%"
+           title="{{.Shown}} — {{hours .Seconds}}"></i>
+        {{end}}
+    </div>
+
+    <p class="parts quiet">
+        {{range .Spread}}<span>{{.Shown}} {{hours .Seconds}}</span>{{end}}
+    </p>
+    {{end}}
 
     <table>
         {{range .Plays}}
@@ -234,6 +260,7 @@
         </tr>
         {{end}}
     </table>
+    </details>
     {{else}}
     <p class="quiet">{{if .Find}}Nothing by that name.{{else}}Nothing yet.
     Install the extension and open a video.{{end}}</p>

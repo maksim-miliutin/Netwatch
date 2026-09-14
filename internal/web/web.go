@@ -592,6 +592,16 @@ type Day struct {
 	Date    string
 	Seconds int
 	Plays   []play.Play
+	Spread  []Slice
+	Open    bool
+}
+
+// A Slice is one service inside one day, and how wide it sits in the bar.
+type Slice struct {
+	Name    string
+	Shown   string
+	Seconds int
+	Part    float64
 }
 
 func byDay(plays []play.Play, at time.Time) []Day {
@@ -608,7 +618,39 @@ func byDay(plays []play.Play, at time.Time) []Day {
 		days[len(days)-1].Seconds += one.Seconds
 	}
 
+	// Only the newest day is open. Thirty rows of skipped tracks is a day
+	// nobody scrolls past, and the days under it are what they came for.
+	for at := range days {
+		days[at].Spread = spread(days[at])
+		days[at].Open = at == 0
+	}
+
 	return days
+}
+
+func spread(day Day) []Slice {
+	if day.Seconds == 0 {
+		return nil
+	}
+
+	total := sum.Over(day.Plays, time.Time{})
+
+	slices := make([]Slice, 0, len(total.Services))
+
+	for _, one := range total.Services {
+		if one.Seconds == 0 {
+			continue
+		}
+
+		slices = append(slices, Slice{
+			Name:    one.Name,
+			Shown:   play.Shown(one.Name),
+			Seconds: one.Seconds,
+			Part:    float64(one.Seconds) / float64(day.Seconds) * 100,
+		})
+	}
+
+	return slices
 }
 
 func dated(when, at time.Time) string {

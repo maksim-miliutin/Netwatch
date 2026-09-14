@@ -800,3 +800,58 @@ func TestOffersNoStartingWhereThereIsNone(t *testing.T) {
 		t.Error("offered something it cannot do")
 	}
 }
+
+// Thirty rows of skipped tracks is a day nobody scrolls past, and the days
+// under it are what somebody came for.
+func TestFoldsEveryDayButTheNewest(t *testing.T) {
+	at := time.Date(2026, time.September, 9, 18, 0, 0, 0, time.Local)
+
+	days := byDay([]play.Play{
+		{Service: "youtube", ID: "a", At: at.Add(-time.Hour), Seconds: 600},
+		{Service: "yandex-music", ID: "b", At: at.Add(-2 * time.Hour), Seconds: 300},
+		{Service: "youtube", ID: "c", At: at.AddDate(0, 0, -1), Seconds: 120},
+	}, at)
+
+	if len(days) != 2 {
+		t.Fatalf("got %d days", len(days))
+	}
+
+	if !days[0].Open || days[1].Open {
+		t.Errorf("open: today %v, yesterday %v", days[0].Open, days[1].Open)
+	}
+}
+
+// Where a day went, in one line: the widths are what each service took of it.
+func TestSpreadsADayOverItsServices(t *testing.T) {
+	at := time.Date(2026, time.September, 9, 18, 0, 0, 0, time.Local)
+
+	days := byDay([]play.Play{
+		{Service: "youtube", ID: "a", At: at.Add(-time.Hour), Seconds: 900},
+		{Service: "yandex-music", ID: "b", At: at.Add(-2 * time.Hour), Seconds: 300},
+	}, at)
+
+	spread := days[0].Spread
+	if len(spread) != 2 {
+		t.Fatalf("got %+v", spread)
+	}
+
+	// Sorted by time, so the longest comes first and takes three quarters.
+	if spread[0].Name != "youtube" || spread[0].Part < 74 || spread[0].Part > 76 {
+		t.Errorf("first is %+v", spread[0])
+	}
+
+	if spread[1].Shown != "Yandex Music" {
+		t.Errorf("second is %+v", spread[1])
+	}
+}
+
+// A day of plays nobody stayed for has nothing to spread.
+func TestSpreadsNothingWhenNoTimeWasCounted(t *testing.T) {
+	at := time.Now()
+
+	days := byDay([]play.Play{{Service: "youtube", ID: "a", At: at}}, at)
+
+	if days[0].Spread != nil {
+		t.Errorf("got %+v", days[0].Spread)
+	}
+}
