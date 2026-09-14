@@ -145,15 +145,7 @@ func main() {
 
 	ear, err := net.Listen("tcp", address)
 	if err != nil {
-		if awake(address) {
-			note(written, "netwatch is already running.")
-
-			if *alone {
-				if err := window("http://" + address); err != nil {
-					note(written, err.Error())
-				}
-			}
-
+		if again(address, *alone, written) {
 			return
 		}
 
@@ -217,6 +209,25 @@ func bring(kept *store.Store, from string) error {
 	}
 
 	return nil
+}
+
+// Somebody who closed the window wants it back, not two of these.
+func again(address string, alone bool, written io.Writer) bool {
+	if !awake(address) {
+		return false
+	}
+
+	note(written, "netwatch is already running.")
+
+	if !alone {
+		return true
+	}
+
+	if err := window("http://" + address); err != nil {
+		note(written, err.Error())
+	}
+
+	return true
 }
 
 func awake(address string) bool {
