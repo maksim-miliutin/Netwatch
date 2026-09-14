@@ -10,22 +10,27 @@
         margin: 6rem auto;
         padding: 0 1.5rem;
         font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-        color: #1a1f24;
+        color: #000;
+        background: #fff;
     }
 
-    h1 { font-size: 1.5rem; margin: 0 0 0.2rem; }
-    p { color: #6b7178; font-size: 0.9rem; margin: 0.4rem 0; }
+    h1 { font-size: 1.5rem; font-weight: 600; margin: 0 0 0.2rem; }
+    p { color: #5a5a5a; font-size: 0.9rem; margin: 0.4rem 0; }
+
+    @media (prefers-color-scheme: dark) {
+        body { color: #ededed; background: #101010; }
+        p { color: #9a9a9a; }
+    }
 </style>
 </head>
 <body>
-    <h1>netwatch has stopped</h1>
-    <p>Nothing is being written down, and the Discord card is down.</p>
-    <p>Start it again whenever. The list is where it was.</p>
+    <h1>{{t "gone.title"}}</h1>
+    <p>{{t "gone.what"}}</p>
+    <p>{{t "gone.again"}}</p>
 
 <script>
 // A window of its own should go away with the program, and this page is only
-// what is left when the browser will not let it: a tab it did not open by
-// script is a tab it refuses to close.
+// what is left when the browser will not let it.
 window.close();
 </script>
 </body>

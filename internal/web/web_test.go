@@ -15,6 +15,7 @@ import (
 	"netwatch/internal/now"
 	"netwatch/internal/play"
 	"netwatch/internal/quiet"
+	"netwatch/internal/say"
 	"netwatch/internal/store"
 	"netwatch/internal/sum"
 )
@@ -938,4 +939,34 @@ func TestLeavesAShortDayWhole(t *testing.T) {
 	if len(days[0].Head) != 1 || days[0].Rest != nil {
 		t.Errorf("head %d, rest %+v", len(days[0].Head), days[0].Rest)
 	}
+}
+
+// The page said on the way out is said in the language the rest of it was in.
+func TestSaysGoodbyeInTheSameLanguage(t *testing.T) {
+	say.Speak(say.Russian)
+	defer say.Speak(say.English)
+
+	stopped := make(chan bool, 1)
+
+	kept, err := store.Open(filepath.Join(t.TempDir(), "plays.jsonl"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	server := &Server{
+		Store:    kept,
+		Watching: now.New(),
+		Quiet:    hushed(t),
+		Mine:     own(t),
+		Quitting: func() { stopped <- true },
+	}
+
+	answer := httptest.NewRecorder()
+	Near(server.Routes()).ServeHTTP(answer, asking(t, "/api/quit", "", ""))
+
+	if !strings.Contains(answer.Body.String(), "netwatch остановлен") {
+		t.Errorf("said goodbye in %s", answer.Body)
+	}
+
+	<-stopped
 }

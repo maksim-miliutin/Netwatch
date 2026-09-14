@@ -29,7 +29,11 @@ import (
 var pageSource string
 
 //go:embed gone.html
-var farewell []byte
+var farewellSource string
+
+var farewell = template.Must(template.New("gone").Funcs(template.FuncMap{
+	"t": say.In,
+}).Parse(farewellSource))
 
 //go:embed icon.png
 var mark []byte
@@ -390,7 +394,7 @@ func (s *Server) joining(w http.ResponseWriter, r *http.Request) {
 // this page or not at all.
 func (s *Server) quit(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("content-type", "text/html; charset=utf-8")
-	_, _ = w.Write(farewell)
+	_ = farewell.Execute(w, nil)
 
 	if s.Quitting == nil {
 		return

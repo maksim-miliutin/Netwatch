@@ -4,6 +4,8 @@ package main
 
 import (
 	"runtime"
+
+	"netwatch/internal/say"
 	"syscall"
 	"unsafe"
 )
@@ -204,8 +206,10 @@ func choose(window syscall.Handle) {
 	}
 	defer destroyMenu.Call(menu)
 
-	appendMenu.Call(menu, 0, openItem, uintptr(unsafe.Pointer(must("Open netwatch"))))
-	appendMenu.Call(menu, 0, quitItem, uintptr(unsafe.Pointer(must("Quit"))))
+	appendMenu.Call(menu, 0, openItem,
+		uintptr(unsafe.Pointer(must(say.In("tray.open")))))
+	appendMenu.Call(menu, 0, quitItem,
+		uintptr(unsafe.Pointer(must(say.In("tray.quit")))))
 
 	var where point
 	cursorPos.Call(uintptr(unsafe.Pointer(&where)))
