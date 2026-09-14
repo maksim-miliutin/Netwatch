@@ -119,6 +119,19 @@
     .parts { display: flex; flex-wrap: wrap; column-gap: var(--gap);
              margin: 0 0 var(--tight); font-size: var(--small); }
 
+    .rest summary { color: var(--faint); font-size: var(--small);
+                    cursor: pointer; padding: var(--step) 0; }
+
+    /* A window dragged narrow, or a phone. Four columns and a seven rem
+       service name leave nothing for the name of what was watched. */
+    @media (max-width: 34rem) {
+        td:first-child, td:nth-child(3) { display: none; }
+        .title { max-width: none; }
+        .now .what { font-size: var(--body); }
+        .head, .top { gap: var(--tight); }
+        .find input { width: 100%; }
+    }
+
     table { border-collapse: collapse; width: 100%; }
     td { padding: var(--step) var(--gap) var(--step) 0; vertical-align: baseline; }
     td:first-child { color: var(--faint); width: 7rem; }
@@ -270,7 +283,7 @@
     {{end}}
 
     <table>
-        {{range .Plays}}
+        {{range .Head}}
         <tr>
             <td>{{shown .Service}}</td>
             <td class="title">
@@ -292,6 +305,34 @@
         </tr>
         {{end}}
     </table>
+
+    {{if .Rest}}
+    <details class="rest">
+    <summary>{{count (len .Rest) "more"}}</summary>
+
+    <table>
+        {{range .Rest}}
+        <tr>
+            <td>{{shown .Service}}</td>
+            <td class="title">
+                <a href="{{.URL}}">{{if .Title}}{{.Title}}{{else}}{{.ID}}{{end}}</a>
+            </td>
+            <td>{{if .Seconds}}{{hours .Seconds}}{{end}}</td>
+            <td>{{.At.Format "15:04"}}</td>
+            <td class="cross">
+                <form method="post" action="/api/forget">
+                    <input type="hidden" name="service" value="{{.Service}}">
+                    <input type="hidden" name="id" value="{{.ID}}">
+                    <input type="hidden" name="at"
+                           value="{{.At.Format "2006-01-02T15:04:05.999999999Z07:00"}}">
+                    <button title="{{t "forget"}}">×</button>
+                </form>
+            </td>
+        </tr>
+        {{end}}
+    </table>
+    </details>
+    {{end}}
     </details>
     {{else}}
     <p class="quiet">{{if .Find}}{{t "find.nothing"}}{{else}}{{t "nothing"}}{{end}}</p>

@@ -891,3 +891,51 @@ func TestSaysAWeekInWordsWhenNoTimeWasCounted(t *testing.T) {
 		t.Error("said nothing about the service at all")
 	}
 }
+
+// An evening of skipping tracks is forty rows, and the day under it is what
+// somebody came for.
+func TestFoldsTheTailOfALongDay(t *testing.T) {
+	at := time.Date(2026, time.September, 10, 20, 0, 0, 0, time.Local)
+
+	var many []play.Play
+	for i := 0; i < Few+8; i++ {
+		many = append(many, play.Play{
+			Service: "yandex-music",
+			ID:      fmt.Sprintf("t%d", i),
+			At:      at.Add(-time.Duration(i) * time.Minute),
+			Seconds: 30,
+		})
+	}
+
+	days := byDay(many, at)
+
+	if len(days[0].Head) != Few {
+		t.Errorf("showed %d rows", len(days[0].Head))
+	}
+
+	if len(days[0].Rest) != 8 {
+		t.Errorf("folded %d rows", len(days[0].Rest))
+	}
+
+	// The whole day is still counted, not only the part on show.
+	if days[0].Seconds != (Few+8)*30 {
+		t.Errorf("counted %d seconds", days[0].Seconds)
+	}
+
+	if len(days[0].Spread) != 1 || days[0].Spread[0].Seconds != (Few+8)*30 {
+		t.Errorf("spread over %+v", days[0].Spread)
+	}
+}
+
+// A short day is not folded at all.
+func TestLeavesAShortDayWhole(t *testing.T) {
+	at := time.Now()
+
+	days := byDay([]play.Play{
+		{Service: "youtube", ID: "a", At: at, Seconds: 60},
+	}, at)
+
+	if len(days[0].Head) != 1 || days[0].Rest != nil {
+		t.Errorf("head %d, rest %+v", len(days[0].Head), days[0].Rest)
+	}
+}

@@ -630,10 +630,16 @@ func (s *Server) working(plays []play.Play) string {
 type Day struct {
 	Date    string
 	Seconds int
-	Plays   []play.Play
+	Head    []play.Play
+	Rest    []play.Play
 	Spread  []Slice
 	Open    bool
 }
+
+// How much of a day is shown before the rest is folded away. An evening of
+// skipping tracks is forty rows, and the day under it is what somebody came
+// for.
+const Few = 12
 
 // A Slice is one service inside one day, and how wide it sits in the bar.
 type Slice struct {
@@ -653,7 +659,7 @@ func byDay(plays []play.Play, at time.Time) []Day {
 			days = append(days, Day{Date: date})
 		}
 
-		days[len(days)-1].Plays = append(days[len(days)-1].Plays, one)
+		days[len(days)-1].Head = append(days[len(days)-1].Head, one)
 		days[len(days)-1].Seconds += one.Seconds
 	}
 
@@ -662,13 +668,19 @@ func byDay(plays []play.Play, at time.Time) []Day {
 	for at := range days {
 		days[at].Spread = spread(days[at])
 		days[at].Open = at == 0
+
+		if len(days[at].Head) > Few {
+			days[at].Rest = days[at].Head[Few:]
+			days[at].Head = days[at].Head[:Few]
+		}
 	}
 
 	return days
 }
 
 func spread(day Day) []Slice {
-	return slices(sum.Over(day.Plays, time.Time{}))
+	return slices(sum.Over(append(append([]play.Play(nil), day.Head...),
+		day.Rest...), time.Time{}))
 }
 
 // The same shape for a day and for a week: one question asked twice deserves
