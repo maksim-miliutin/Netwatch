@@ -7,7 +7,7 @@ import (
 	"netwatch/internal/play"
 )
 
-const longest = 128
+const longest = 84
 
 const paused = "Paused"
 
@@ -29,6 +29,8 @@ func Card(live now.Live) *Activity {
 
 	if live.Paused {
 		card.State = paused
+		card.Assets.Small = "pause"
+		card.Assets.SmallText = paused
 	} else {
 		card.Timestamps = when(live)
 	}
@@ -97,5 +99,11 @@ func line(text string) string {
 		return string(runes)
 	}
 
-	return strings.TrimSpace(string(runes[:longest-1])) + "…"
+	cut := string(runes[:longest-1])
+
+	if space := strings.LastIndexAny(cut, " —–-|·"); space > longest/2 {
+		cut = cut[:space]
+	}
+
+	return strings.TrimRight(strings.TrimSpace(cut), ",.;:|·—–-") + "…"
 }

@@ -54,6 +54,8 @@ type Timestamps struct {
 type Assets struct {
 	Large     string `json:"large_image,omitempty"`
 	LargeText string `json:"large_text,omitempty"`
+	Small     string `json:"small_image,omitempty"`
+	SmallText string `json:"small_text,omitempty"`
 }
 
 type Button struct {
@@ -66,9 +68,8 @@ type Presence struct {
 	pipe     io.ReadWriteCloser
 	patience time.Duration
 
-	// Read through a buffer big enough for any frame Discord sends. A named
-	// pipe on Windows hands over one message at a time, and asking it for the
-	// eight bytes of a head splits a message it will not put back together.
+	// A named pipe on Windows hands over one message at a time, and asking for
+	// the eight bytes of a head splits one it will not put back together.
 	heard *bufio.Reader
 
 	mu sync.Mutex

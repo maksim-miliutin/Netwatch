@@ -134,3 +134,54 @@ func TestLeavesOutAButtonThatGoesNowhere(t *testing.T) {
 		t.Errorf("got %+v", buttons)
 	}
 }
+
+// Discord takes 128, but a line that long wraps to three and runs into the
+// edge. What is cut should be cut at a word.
+func TestCutsALongNameAtAWord(t *testing.T) {
+	long := "Holy Terra | 3 Hours of Beautiful Choir and Piano Music for " +
+		"Reading, Painting, Sleeping."
+
+	got := Card(live("youtube", long)).Details
+
+	if len([]rune(got)) > longest {
+		t.Errorf("came out %d long", len([]rune(got)))
+	}
+
+	if !strings.HasSuffix(got, "…") {
+		t.Errorf("ends %q", got)
+	}
+
+	// Not mid-word, and not on a comma left hanging before the dots.
+	if strings.HasSuffix(got, ",…") || strings.HasSuffix(got, " …") {
+		t.Errorf("cut badly: %q", got)
+	}
+
+	t.Logf("%q", got)
+}
+
+// A name that fits is left alone.
+func TestLeavesAShortNameWhole(t *testing.T) {
+	if got := Card(live("youtube", "Нечто")).Details; got != "Нечто" {
+		t.Errorf("got %q", got)
+	}
+}
+
+// Paused is said in words and shown by the small picture over the tile, so
+// somebody glancing at a profile can tell listening from having walked off.
+func TestShowsPauseOverTheTile(t *testing.T) {
+	one := live("spotify", "Нечто")
+	one.Paused = true
+
+	card := Card(one)
+
+	if card.Assets.Small != "pause" || card.Assets.SmallText != "Paused" {
+		t.Errorf("small is %q %q", card.Assets.Small, card.Assets.SmallText)
+	}
+
+	// Nothing over the tile while it is playing.
+	one.Paused = false
+
+	if small := Card(one).Assets.Small; small != "" {
+		t.Errorf("playing shows %q", small)
+	}
+}
