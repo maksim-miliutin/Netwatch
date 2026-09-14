@@ -132,6 +132,12 @@ What is hidden is what is kept, in `.netwatch/quiet`, one name to a line. A
 service added to the program later turns up on the card by itself rather than
 going missing until somebody notices.
 
+## What leaves the machine
+
+The Discord card, and nothing else. No server, no account, no telemetry, no
+analytics. What is read, where it is kept and how to delete it is written out
+in [PRIVACY.md](PRIVACY.md).
+
 ## Adding a site of your own
 
 There is a box at the foot of the page for anything with a video or a sound on
