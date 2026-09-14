@@ -20,6 +20,7 @@ import (
 	"netwatch/internal/now"
 	"netwatch/internal/play"
 	"netwatch/internal/quiet"
+	"netwatch/internal/say"
 	"netwatch/internal/store"
 	"netwatch/internal/sum"
 )
@@ -37,27 +38,25 @@ var page = template.Must(template.New("page").Funcs(template.FuncMap{
 	"hours": hours,
 	"shown": play.Shown,
 	"times": times,
+	"t":     say.In,
+	"count": say.Count,
 	"clock": clock,
 }).Parse(pageSource))
 
 func hours(seconds int) string {
 	if seconds < 60 {
-		return fmt.Sprintf("%d sec", seconds)
+		return say.Count(seconds, "sec")
 	}
 
 	if seconds < 3600 {
-		return fmt.Sprintf("%d min", seconds/60)
+		return say.Count(seconds/60, "min")
 	}
 
-	return fmt.Sprintf("%d h %d min", seconds/3600, (seconds%3600)/60)
+	return say.Count(seconds/3600, "hour") + " " + say.Count((seconds%3600)/60, "min")
 }
 
 func times(count int) string {
-	if count == 1 {
-		return "once"
-	}
-
-	return fmt.Sprintf("%d times", count)
+	return say.Count(count, "times")
 }
 
 type Server struct {
@@ -75,6 +74,8 @@ type Server struct {
 
 	Starting func() bool
 	Starts   func(with bool) error
+
+	Speaking func(in string) error
 }
 
 func (s *Server) Routes() *http.ServeMux {
@@ -91,6 +92,7 @@ func (s *Server) Routes() *http.ServeMux {
 	mux.HandleFunc("POST /api/quit", s.quit)
 	mux.HandleFunc("POST /api/discord", s.joining)
 	mux.HandleFunc("POST /api/start", s.startup)
+	mux.HandleFunc("POST /api/language", s.tongue)
 	mux.HandleFunc("GET /icon.png", s.icon)
 	mux.HandleFunc("POST /api/forget", s.forget)
 	mux.HandleFunc("GET /plays.csv", s.sheet)
@@ -476,6 +478,47 @@ func (s *Server) adding(w http.ResponseWriter, r *http.Request) {
 	back(w, r)
 }
 
+func (s *Server) tongue(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "unreadable", http.StatusBadRequest)
+
+		return
+	}
+
+	say.Speak(r.FormValue("in"))
+
+	if s.Speaking != nil {
+		if err := s.Speaking(say.Spoken()); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+
+			return
+		}
+	}
+
+	back(w, r)
+}
+
+// A Tongue is one language and whether it is the one being spoken.
+type Tongue struct {
+	Code   string
+	Shown  string
+	Spoken bool
+}
+
+func tongues() []Tongue {
+	var all []Tongue
+
+	for _, code := range say.Languages() {
+		all = append(all, Tongue{
+			Code:   code,
+			Shown:  say.Named(code),
+			Spoken: code == say.Spoken(),
+		})
+	}
+
+	return all
+}
+
 func (s *Server) startup(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil || s.Starts == nil {
 		http.Error(w, "unreadable", http.StatusBadRequest)
@@ -565,27 +608,23 @@ func matching(plays []play.Play, find string) []play.Play {
 // The line under the name answers what people open this page to ask: is it
 // working. A browser that stopped reporting looks exactly like an evening
 func (s *Server) working(plays []play.Play) string {
-	said := "Nothing reported yet"
+	said := say.In("lead.nothing")
 
 	if len(plays) > 0 {
-		said = "Reporting"
+		said = say.In("lead.reporting")
 
 		if time.Since(plays[0].At) > 24*time.Hour {
-			said = "Nothing reported since " + plays[0].At.Format("2 January")
+			said = say.In("lead.silent") + say.Date(plays[0].At)
 		}
 	}
 
 	if s.Id != "" {
-		said += ", card on"
+		said += say.In("lead.card.on")
 	} else {
-		said += ", card off"
+		said += say.In("lead.card.off")
 	}
 
-	if len(plays) == 1 {
-		return said + ", 1 play kept."
-	}
-
-	return said + ", " + strconv.Itoa(len(plays)) + " plays kept."
+	return said + say.Count(len(plays), "lead.kept")
 }
 
 type Day struct {
@@ -657,14 +696,14 @@ func dated(when, at time.Time) string {
 	when, at = when.Local(), at.Local()
 
 	if sameDay(when, at) {
-		return "Today"
+		return say.In("today")
 	}
 
 	if sameDay(when, at.AddDate(0, 0, -1)) {
-		return "Yesterday"
+		return say.In("yesterday")
 	}
 
-	return when.Format("Monday, 2 January")
+	return say.Day(when)
 }
 
 func sameDay(one, other time.Time) bool {
@@ -768,16 +807,16 @@ func (s *Server) show(w http.ResponseWriter, r *http.Request) {
 		plays = matching(plays, find)
 	}
 
-	title, next, named := "This week", "month", "the month"
+	title, next, named := say.In("week"), "month", say.In("show.month")
 	total := sum.Week(plays, time.Now())
 
 	switch r.URL.Query().Get("span") {
 	case "month":
-		title, next, named = "This month", "all", "all of it"
+		title, next, named = say.In("month"), "all", say.In("show.all")
 		total = sum.Month(plays, time.Now())
 
 	case "all":
-		title, next, named = "All of it", "week", "the week"
+		title, next, named = say.In("all"), "week", say.In("show.week")
 		total = sum.Over(plays, time.Time{})
 	}
 
@@ -805,11 +844,13 @@ func (s *Server) show(w http.ResponseWriter, r *http.Request) {
 		Stamp    string
 		Boots    bool
 		Bootable bool
+		Tongue   string
+		Tongues  []Tongue
 		Choices  []Sort
 	}{s.onNow(), byDay(plays, time.Now()), total, title, elsewhere(next, find),
 		named, r.URL.Query().Get("span"), more, find, working, fresh, s.Id,
 		s.told(), stamp, s.Starting != nil && s.Starting(), s.Starts != nil,
-		choices})
+		say.Spoken(), tongues(), choices})
 }
 
 func answer(w http.ResponseWriter, body any) {

@@ -24,6 +24,7 @@ import (
 	"netwatch/internal/now"
 	"netwatch/internal/play"
 	"netwatch/internal/quiet"
+	"netwatch/internal/say"
 	"netwatch/internal/store"
 	"netwatch/internal/takeout"
 	"netwatch/internal/web"
@@ -86,6 +87,12 @@ func main() {
 		play.Add(host, shown)
 	}
 
+	tongue := filepath.Join(filepath.Dir(where), "language")
+
+	if spoken, err := os.ReadFile(tongue); err == nil {
+		say.Speak(strings.TrimSpace(string(spoken)))
+	}
+
 	watching := now.New()
 	var boots atomic.Bool
 
@@ -110,6 +117,9 @@ func main() {
 		Says:     said.last,
 		Quitting: func() { os.Exit(0) },
 		Id:       id,
+		Speaking: func(in string) error {
+			return os.WriteFile(tongue, []byte(in+"\n"), 0o600)
+		},
 		Starting: boots.Load,
 		Starts: func(with bool) error {
 			if err := start(with); err != nil {
