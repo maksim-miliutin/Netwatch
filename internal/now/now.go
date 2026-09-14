@@ -44,20 +44,25 @@ func New() *Watch {
 	return &Watch{}
 }
 
+// Longest a play can be before the page saying it is not to be believed.
+const Most = 24 * time.Hour
+
 func (w *Watch) Says(said Said, at time.Time) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
+
+	position, length := sane(said.Position, said.Length)
 
 	live := Live{
 		Play:     said.Play,
 		By:       said.By,
 		Paused:   said.Paused,
-		Started:  at.Add(-said.Position),
-		Position: said.Position,
+		Started:  at.Add(-position),
+		Position: position,
 	}
 
-	if said.Length > 0 {
-		live.Ends = live.Started.Add(said.Length)
+	if length > 0 {
+		live.Ends = live.Started.Add(length)
 	}
 
 	if w.on && steady(w.live, live) {
@@ -68,6 +73,25 @@ func (w *Watch) Says(said Said, at time.Time) {
 	w.live = live
 	w.told = at
 	w.on = true
+}
+
+// A page can say anything: a position past the end, a position before the
+// start, a length of a century. Those go on the card as a bar that has already
+// run out or has not begun.
+func sane(position, length time.Duration) (time.Duration, time.Duration) {
+	if length < 0 || length > Most {
+		length = 0
+	}
+
+	if position < 0 || position > Most {
+		position = 0
+	}
+
+	if length > 0 && position > length {
+		position = length
+	}
+
+	return position, length
 }
 
 // Nothing is a fact rather than a timeout, and does not wait out the quiet.
