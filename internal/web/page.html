@@ -105,9 +105,26 @@
     .aday { margin: var(--apart) 0 0; }
     .aday[open] { margin-bottom: var(--apart); }
 
+    /* A summary laid out with flex loses the triangle a browser draws on it,
+       and a day that folds looks like a day that does not. */
+    summary { list-style: none; }
+    summary::-webkit-details-marker { display: none; }
+
     .day { display: flex; justify-content: space-between; align-items: baseline;
            margin: 0; font-size: var(--small); color: var(--faint);
            cursor: pointer; }
+
+    .day span:first-child::before, .part summary::before,
+    .below > summary::before, .rest summary::before {
+        content: "›";
+        display: inline-block;
+        width: 0.9em;
+        color: var(--faint);
+        transition: transform 0.12s;
+    }
+
+    details[open] > .day span:first-child::before,
+    details[open] > summary::before { transform: rotate(90deg); }
 
     /* Where a day went, in one line. One accent and grey rather than a colour
        for every service: nine colours in a row is a chart nobody reads. */
@@ -152,7 +169,8 @@
     .below { margin-top: var(--end); }
     .below h2 { margin-top: var(--apart); }
     .below h2.apart { margin-top: var(--far); }
-    .below summary { color: var(--faint); font-size: var(--quiet); cursor: pointer; }
+    .below > summary { color: var(--faint); font-size: var(--quiet);
+                       cursor: pointer; }
 
     .part { margin-top: var(--gap); }
     .part summary { color: var(--ink); font-size: var(--body); }
