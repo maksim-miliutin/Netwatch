@@ -16,6 +16,7 @@ import (
 	"netwatch/internal/play"
 	"netwatch/internal/quiet"
 	"netwatch/internal/store"
+	"netwatch/internal/sum"
 )
 
 func hushed(t *testing.T) *quiet.List {
@@ -853,5 +854,40 @@ func TestSpreadsNothingWhenNoTimeWasCounted(t *testing.T) {
 
 	if days[0].Spread != nil {
 		t.Errorf("got %+v", days[0].Spread)
+	}
+}
+
+// One question asked twice deserves one answer twice: the week is spread the
+// same way a day is.
+func TestSpreadsTheWeekTheWayItSpreadsADay(t *testing.T) {
+	spread := slices(sum.Over([]play.Play{
+		{Service: "youtube", ID: "a", At: time.Now(), Seconds: 900},
+		{Service: "twitch", ID: "b", At: time.Now(), Seconds: 300},
+	}, time.Time{}))
+
+	if len(spread) != 2 {
+		t.Fatalf("got %+v", spread)
+	}
+
+	if spread[0].Name != "youtube" || spread[0].Part < 74 || spread[0].Part > 76 {
+		t.Errorf("first is %+v", spread[0])
+	}
+}
+
+// A week nobody stayed for cannot be spread, and the page says it in words
+// instead of dividing by nothing.
+func TestSaysAWeekInWordsWhenNoTimeWasCounted(t *testing.T) {
+	handler := serving(t)
+
+	sent(t, handler, "/api/seen", `{"url":"https://youtu.be/a","title":"One"}`)
+
+	page := shown(t, handler)
+
+	if strings.Contains(page, `class="spread wide"`) {
+		t.Error("drew a bar out of nothing")
+	}
+
+	if !strings.Contains(page, "YouTube") {
+		t.Error("said nothing about the service at all")
 	}
 }

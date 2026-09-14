@@ -102,6 +102,7 @@
     /* Where a day went, in one line. One accent and grey rather than a colour
        for every service: nine colours in a row is a chart nobody reads. */
     .spread { display: flex; height: 6px; gap: 1px; margin: var(--tight) 0; }
+    .spread.wide { height: 10px; margin: var(--gap) 0 var(--tight); }
     .spread i { display: block; background: var(--rule); }
     .spread i:first-child { background: var(--live); }
 
@@ -129,6 +130,10 @@
     .below h2 { margin-top: var(--apart); }
     .below h2.apart { margin-top: var(--far); }
     .below summary { color: var(--faint); font-size: var(--quiet); cursor: pointer; }
+
+    .part { margin-top: var(--gap); }
+    .part summary { color: var(--ink); font-size: var(--body); }
+    .part[open] { margin-bottom: var(--apart); }
 
     .join { margin: 0 0 var(--step); }
     .join input { font: inherit; font-size: var(--quiet); width: 13rem;
@@ -188,11 +193,22 @@
     <h2>{{$.Title}}</h2>
     <p>{{times .Plays}}{{if .Seconds}}, {{hours .Seconds}}{{end}}</p>
 
-    <ul>
-        {{range .Services}}
-        <li>{{shown .Name}} — {{if .Seconds}}{{hours .Seconds}}{{else}}{{times .Plays}}{{end}}</li>
+    {{if $.Spread}}
+    <div class="spread wide">
+        {{range $.Spread}}
+        <i style="width: {{printf "%.2f" .Part}}%"
+           title="{{.Shown}} — {{hours .Seconds}}"></i>
         {{end}}
-    </ul>
+    </div>
+
+    <p class="parts quiet">
+        {{range $.Spread}}<span>{{.Shown}} {{hours .Seconds}}</span>{{end}}
+    </p>
+    {{else}}
+    <p class="parts quiet">
+        {{range .Services}}<span>{{shown .Name}} {{times .Plays}}</span>{{end}}
+    </p>
+    {{end}}
 
     {{if .Open}}
     <p class="quiet">{{count .Open "uncounted"}}</p>
@@ -269,7 +285,8 @@
     <details class="below" id="settings"{{if .Fresh}} open{{end}}>
     <summary>{{t "settings.title"}}</summary>
 
-    <h2>{{t "discord"}}</h2>
+    <details class="part" open>
+    <summary><b>{{t "discord"}}</b></summary>
     <p class="quiet">{{t "discord.what"}}</p>
 
     <form class="join" method="post" action="/api/discord">
@@ -285,7 +302,10 @@
 
     {{if .Said}}<p class="said">{{.Said}}</p>{{end}}
 
-    <h2 class="apart">{{t "card"}}</h2>
+    </details>
+
+    <details class="part">
+    <summary><b>{{t "card"}}</b></summary>
     <p class="quiet">{{t "card.what"}}</p>
 
     <form class="card" method="post" action="/api/quiet">
@@ -307,7 +327,10 @@
     </form>
 
     {{if .Bootable}}
-    <h2 class="apart">{{t "starting"}}</h2>
+    </details>
+
+    <details class="part">
+    <summary><b>{{t "starting"}}</b></summary>
     <p class="quiet">{{t "starting.what"}}</p>
 
     <form class="join" method="post" action="/api/start">
@@ -317,7 +340,10 @@
     </form>
     {{end}}
 
-    <h2 class="apart">{{t "language"}}</h2>
+    </details>
+
+    <details class="part">
+    <summary><b>{{t "language"}}</b></summary>
 
     <form class="join" method="post" action="/api/language">
         {{range .Tongues}}
@@ -327,7 +353,10 @@
         {{end}}
     </form>
 
-    <h2 class="apart">{{t "site"}}</h2>
+    </details>
+
+    <details class="part">
+    <summary><b>{{t "site"}}</b></summary>
     <p class="quiet">{{t "site.what"}}</p>
 
     <p class="quiet">{{t "site.browser"}}</p>
@@ -337,6 +366,8 @@
         <input type="text" name="shown" placeholder="{{t "site.name"}}" autocomplete="off">
         <button>{{t "add"}}</button>
     </form>
+
+    </details>
 
     <form method="post" action="/api/quit">
         <button class="stop">{{t "quit"}}</button>

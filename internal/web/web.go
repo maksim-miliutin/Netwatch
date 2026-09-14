@@ -668,28 +668,32 @@ func byDay(plays []play.Play, at time.Time) []Day {
 }
 
 func spread(day Day) []Slice {
-	if day.Seconds == 0 {
+	return slices(sum.Over(day.Plays, time.Time{}))
+}
+
+// The same shape for a day and for a week: one question asked twice deserves
+// one answer twice, not a bar in one place and a list of dots in the other.
+func slices(total sum.Total) []Slice {
+	if total.Seconds == 0 {
 		return nil
 	}
 
-	total := sum.Over(day.Plays, time.Time{})
-
-	slices := make([]Slice, 0, len(total.Services))
+	made := make([]Slice, 0, len(total.Services))
 
 	for _, one := range total.Services {
 		if one.Seconds == 0 {
 			continue
 		}
 
-		slices = append(slices, Slice{
+		made = append(made, Slice{
 			Name:    one.Name,
 			Shown:   play.Shown(one.Name),
 			Seconds: one.Seconds,
-			Part:    float64(one.Seconds) / float64(day.Seconds) * 100,
+			Part:    float64(one.Seconds) / float64(total.Seconds) * 100,
 		})
 	}
 
-	return slices
+	return made
 }
 
 func dated(when, at time.Time) string {
@@ -846,11 +850,12 @@ func (s *Server) show(w http.ResponseWriter, r *http.Request) {
 		Bootable bool
 		Tongue   string
 		Tongues  []Tongue
+		Spread   []Slice
 		Choices  []Sort
 	}{s.onNow(), byDay(plays, time.Now()), total, title, elsewhere(next, find),
 		named, r.URL.Query().Get("span"), more, find, working, fresh, s.Id,
 		s.told(), stamp, s.Starting != nil && s.Starting(), s.Starts != nil,
-		say.Spoken(), tongues(), choices})
+		say.Spoken(), tongues(), slices(total), choices})
 }
 
 func answer(w http.ResponseWriter, body any) {
