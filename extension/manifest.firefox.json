@@ -12,7 +12,10 @@
         "http://127.0.0.1/*"
     ],
     "background": {
-        "service_worker": "dist/worker.js"
+        "scripts": [
+            "dist/api.js",
+            "dist/worker.js"
+        ]
     },
     "content_scripts": [
         {
@@ -119,5 +122,11 @@
     },
     "optional_host_permissions": [
         "*://*/*"
-    ]
+    ],
+    "browser_specific_settings": {
+        "gecko": {
+            "id": "netwatch@maksim-miliutin.github.io",
+            "strict_min_version": "121.0"
+        }
+    }
 }

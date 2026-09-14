@@ -1,8 +1,12 @@
+declare function importScripts(...files: string[]): void;
+
+importScripts('api.js');
+
 // Tells netwatch what is open and nothing anywhere else. The port is asked
 // for every time: a service worker sleeps all day and wakes up out of date.
 async function netwatch(): Promise<string>
 {
-    const kept = await chrome.storage.local.get('port');
+    const kept = await api.storage.local.get('port');
 
     return 'http://127.0.0.1:' + (kept.port ?? 7373) + '/api';
 }
@@ -32,7 +36,7 @@ let heard = 0;
 // something to keep, and the only honest way to leave it out is not to send it.
 async function asleep(): Promise<boolean>
 {
-    const kept = await chrome.storage.local.get('asleep');
+    const kept = await api.storage.local.get('asleep');
 
     return kept.asleep === true;
 }
@@ -79,7 +83,7 @@ function tell(tab: chrome.tabs.Tab): void
     }, SETTLE_MS));
 }
 
-chrome.runtime.onMessage.addListener((said: Said, from: chrome.runtime.MessageSender) =>
+api.runtime.onMessage.addListener((said: Said, from: chrome.runtime.MessageSender) =>
 {
     const tab = from.tab?.id ?? null;
     const at = Date.now();
@@ -110,7 +114,7 @@ chrome.runtime.onMessage.addListener((said: Said, from: chrome.runtime.MessageSe
     post('/now', said.watching);
 });
 
-chrome.tabs.onUpdated.addListener((id, changed, tab) =>
+api.tabs.onUpdated.addListener((id, changed, tab) =>
 {
     if (changed.url || changed.title)
     {
@@ -118,7 +122,7 @@ chrome.tabs.onUpdated.addListener((id, changed, tab) =>
     }
 });
 
-chrome.tabs.onRemoved.addListener((id) =>
+api.tabs.onRemoved.addListener((id) =>
 {
     clearTimeout(waiting.get(id));
     waiting.delete(id);

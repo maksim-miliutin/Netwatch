@@ -93,6 +93,23 @@ a settings page for that — right click the icon, Options. Until it knew, a
 different port meant the extension reported into nothing and had no way to say
 so.
 
+## Other browsers
+
+Edge, Opera, Brave, Vivaldi and Yandex Browser are Chromium, and take the
+extension as it is — the same folder, the same way.
+
+Firefox needs the other manifest: rename `manifest.firefox.json` over
+`manifest.json` and load it through `about:debugging` → This Firefox → Load
+Temporary Add-on. It differs in two ways. Firefox runs the background as a
+script rather than a service worker, and wants an id of its own.
+
+Everything that speaks to the browser goes through `api`, which is `browser`
+where that exists and `chrome` where it does not. Firefox answers with promises
+under the first name, Chrome under the second.
+
+Safari would need Xcode, a wrapper application and an Apple developer account.
+Not done.
+
 ## The card
 
 What plays goes on your Discord profile, where friends see it. It works out of

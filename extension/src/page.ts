@@ -36,7 +36,7 @@ function send(what: unknown): void
 {
     try
     {
-        chrome.runtime.sendMessage(what);
+        api.runtime.sendMessage(what);
     }
     catch
     {
@@ -44,9 +44,8 @@ function send(what: unknown): void
     }
 }
 
-// Yandex Music keeps no video or audio element on the page at all: the sound
-// comes from somewhere the page cannot be asked about, and mediaSession is the
-// only thing that knows. No element means no position and no length either.
+// Yandex Music keeps no video or audio element on the page at all, so there is
+// no position and no length either. mediaSession is the only thing that knows.
 function sounding(): { paused: boolean; position: number; length: number } | null
 {
     const one = media();
@@ -83,9 +82,8 @@ function say(): void
 
     const { title, by } = named();
 
-    // Before a page has said what it plays, it is called after the site. The
-    // tick comes round in ten seconds, by which time it has, and a card that
-    // says "YouTube" is worse than one that waits.
+    // Before a page has said what it plays it is called after the site, and a
+    // card that says "YouTube" is worse than one that waits ten seconds.
     if (!title || SITES.split('|').includes(title))
     {
         return;

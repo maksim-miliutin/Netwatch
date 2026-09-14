@@ -81,7 +81,7 @@ async function learn(port: number): Promise<void>
         if (told.in && SAID[told.in])
         {
             spoken = told.in;
-            await chrome.storage.local.set({ said: spoken });
+            await api.storage.local.set({ said: spoken });
 
             return;
         }
@@ -91,7 +91,7 @@ async function learn(port: number): Promise<void>
         // netwatch is not running, and the last language it named will do.
     }
 
-    const kept = await chrome.storage.local.get('said');
+    const kept = await api.storage.local.get('said');
     const last = String(kept.said ?? '');
 
     if (SAID[last])

@@ -81,7 +81,7 @@ function card(on: Now): void
 // The language is learnt before anything is said, so nothing is said twice.
 async function opening(): Promise<void>
 {
-    const kept = await chrome.storage.local.get('port');
+    const kept = await api.storage.local.get('port');
     const port = Number(kept.port ?? 7373);
 
     await learn(port);
@@ -90,7 +90,7 @@ async function opening(): Promise<void>
     list.href = 'http://127.0.0.1:' + port;
     list.textContent = said('open');
 
-    const asleep = (await chrome.storage.local.get('asleep')).asleep === true;
+    const asleep = (await api.storage.local.get('asleep')).asleep === true;
 
     wording(asleep);
 
@@ -108,7 +108,7 @@ async function ask(): Promise<void>
 {
     try
     {
-        const kept = await chrome.storage.local.get('port');
+        const kept = await api.storage.local.get('port');
         const port = kept.port ?? 7373;
 
         const answer = await fetch('http://127.0.0.1:' + port + '/api/now');
@@ -131,10 +131,10 @@ function wording(asleep: boolean): void
 
 pause.addEventListener('click', async () =>
 {
-    const kept = await chrome.storage.local.get('asleep');
+    const kept = await api.storage.local.get('asleep');
     const asleep = kept.asleep !== true;
 
-    await chrome.storage.local.set({ asleep });
+    await api.storage.local.set({ asleep });
     wording(asleep);
 
     state.textContent = '';

@@ -2,7 +2,7 @@ const field = document.getElementById('port') as HTMLInputElement;
 const button = document.getElementById('save') as HTMLButtonElement;
 const told = document.getElementById('said') as HTMLElement;
 
-chrome.storage.local.get('port').then((kept) =>
+api.storage.local.get('port').then((kept) =>
 {
     field.value = String(kept.port ?? 7373);
 });
@@ -18,7 +18,7 @@ button.addEventListener('click', async () =>
         return;
     }
 
-    await chrome.storage.local.set({ port });
+    await api.storage.local.set({ port });
 
     told.textContent = said('saved') + port + '.';
 });
@@ -32,23 +32,23 @@ function reach(host: string): string
 
 async function allowed(host: string): Promise<boolean>
 {
-    return chrome.permissions.contains({ origins: [reach(host)] });
+    return api.permissions.contains({ origins: [reach(host)] });
 }
 
 async function allow(host: string): Promise<boolean>
 {
-    const given = await chrome.permissions.request({ origins: [reach(host)] });
+    const given = await api.permissions.request({ origins: [reach(host)] });
 
     if (!given)
     {
         return false;
     }
 
-    await chrome.scripting.registerContentScripts([
+    await api.scripting.registerContentScripts([
     {
         id: host,
         matches: [reach(host)],
-        js: ['dist/page.js'],
+        js: ['dist/api.js', 'dist/page.js'],
         runAt: 'document_idle',
     }]);
 
@@ -93,7 +93,7 @@ function row(host: string, name: string, given: boolean): HTMLElement
 
 async function listing(): Promise<void>
 {
-    const kept = await chrome.storage.local.get('port');
+    const kept = await api.storage.local.get('port');
     const port = kept.port ?? 7373;
 
     try
@@ -128,7 +128,7 @@ async function listing(): Promise<void>
 
 async function settingUp(): Promise<void>
 {
-    const kept = await chrome.storage.local.get('port');
+    const kept = await api.storage.local.get('port');
 
     await learn(Number(kept.port ?? 7373));
 
