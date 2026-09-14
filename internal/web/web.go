@@ -97,6 +97,7 @@ func (s *Server) Routes() *http.ServeMux {
 	mux.HandleFunc("POST /api/discord", s.joining)
 	mux.HandleFunc("POST /api/start", s.startup)
 	mux.HandleFunc("POST /api/language", s.tongue)
+	mux.HandleFunc("GET /api/language", s.spoken)
 	mux.HandleFunc("GET /icon.png", s.icon)
 	mux.HandleFunc("POST /api/forget", s.forget)
 	mux.HandleFunc("GET /plays.csv", s.sheet)
@@ -480,6 +481,10 @@ func (s *Server) adding(w http.ResponseWriter, r *http.Request) {
 
 	play.Add(host, r.FormValue("shown"))
 	back(w, r)
+}
+
+func (s *Server) spoken(w http.ResponseWriter, r *http.Request) {
+	answer(w, map[string]string{"in": say.Spoken()})
 }
 
 func (s *Server) tongue(w http.ResponseWriter, r *http.Request) {

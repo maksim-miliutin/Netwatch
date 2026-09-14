@@ -30,19 +30,18 @@
 </head>
 <body>
     <h1>netwatch</h1>
-    <p>The port netwatch listens on. Change it here if you started it with
-    <code>-port</code>.</p>
+    <p id="port-said"></p>
 
     <input id="port" type="number" min="1" max="65535">
-    <button id="save">Save</button>
+    <button id="save"></button>
 
     <p class="said" id="said"></p>
 
-    <h2>Sites you added</h2>
-    <p>netwatch knows them; the browser does not. It has to be asked for each
-    one, and only you can ask it.</p>
+    <h2 id="sites-said"></h2>
+    <p id="sites-what"></p>
 
     <div id="sites"></div>
+    <script src="dist/words.js"></script>
     <script src="dist/options.js"></script>
 </body>
 </html>

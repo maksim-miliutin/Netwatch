@@ -52,7 +52,7 @@ function draw(on: Now): void
 {
     if (!on.playing)
     {
-        line('Running. Nothing playing.', 'quiet');
+        line(said('nothing'), 'quiet');
         card(on);
 
         return;
@@ -78,6 +78,32 @@ function card(on: Now): void
     }
 }
 
+// The language is learnt before anything is said, so nothing is said twice.
+async function opening(): Promise<void>
+{
+    const kept = await chrome.storage.local.get('port');
+    const port = Number(kept.port ?? 7373);
+
+    await learn(port);
+
+    const list = document.getElementById('list') as HTMLAnchorElement;
+    list.href = 'http://127.0.0.1:' + port;
+    list.textContent = said('open');
+
+    const asleep = (await chrome.storage.local.get('asleep')).asleep === true;
+
+    wording(asleep);
+
+    if (asleep)
+    {
+        line(said('paused'), 'stopped');
+
+        return;
+    }
+
+    await ask();
+}
+
 async function ask(): Promise<void>
 {
     try
@@ -91,36 +117,17 @@ async function ask(): Promise<void>
     }
     catch
     {
-        line('netwatch is not running.', 'quiet');
+        line(said('not running'), 'quiet');
     }
 }
-
-chrome.storage.local.get('port').then((kept) =>
-{
-    const list = document.getElementById('list') as HTMLAnchorElement;
-
-    list.href = 'http://127.0.0.1:' + (kept.port ?? 7373);
-});
 
 const pause = document.getElementById('pause') as HTMLButtonElement;
 
 function wording(asleep: boolean): void
 {
-    pause.textContent = asleep ? 'Start recording' : 'Pause recording';
+    pause.textContent = asleep ? said('start') : said('pause');
     document.body.classList.toggle('asleep', asleep);
 }
-
-chrome.storage.local.get('asleep').then((kept) =>
-{
-    const asleep = kept.asleep === true;
-
-    wording(asleep);
-
-    if (asleep)
-    {
-        line('Paused. Nothing is being written down.', 'stopped');
-    }
-});
 
 pause.addEventListener('click', async () =>
 {
@@ -134,7 +141,7 @@ pause.addEventListener('click', async () =>
 
     if (asleep)
     {
-        line('Paused. Nothing is being written down.', 'stopped');
+        line(said('paused'), 'stopped');
     }
     else
     {
@@ -142,4 +149,4 @@ pause.addEventListener('click', async () =>
     }
 });
 
-ask();
+opening();

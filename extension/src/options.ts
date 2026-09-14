@@ -13,14 +13,14 @@ button.addEventListener('click', async () =>
 
     if (!Number.isInteger(port) || port < 1 || port > 65535)
     {
-        told.textContent = 'A port is a number between 1 and 65535.';
+        told.textContent = said('a port');
 
         return;
     }
 
     await chrome.storage.local.set({ port });
 
-    told.textContent = 'Saved. netwatch is at 127.0.0.1:' + port + ' now.';
+    told.textContent = said('saved') + port + '.';
 });
 
 const sites = document.getElementById('sites') as HTMLElement;
@@ -63,7 +63,7 @@ function row(host: string, name: string, given: boolean): HTMLElement
 
     line.className = 'site';
     what.textContent = name || host;
-    rest.textContent = given ? 'allowed' : '';
+    rest.textContent = given ? said('allowed') : '';
 
     line.append(what);
 
@@ -76,13 +76,13 @@ function row(host: string, name: string, given: boolean): HTMLElement
 
     const ask = document.createElement('button');
 
-    ask.textContent = 'Allow';
+    ask.textContent = said('allow');
     ask.addEventListener('click', async () =>
     {
         if (await allow(host))
         {
             ask.replaceWith(rest);
-            rest.textContent = 'allowed';
+            rest.textContent = said('allowed');
         }
     });
 
@@ -109,7 +109,7 @@ async function listing(): Promise<void>
         {
             const none = document.createElement('p');
 
-            none.textContent = 'None yet. Add one at the foot of the netwatch page.';
+            none.textContent = said('none');
             sites.append(none);
 
             return;
@@ -122,8 +122,28 @@ async function listing(): Promise<void>
     }
     catch
     {
-        sites.textContent = 'netwatch is not running, so there is nothing to list.';
+        sites.textContent = said('no netwatch');
     }
 }
 
-listing();
+async function settingUp(): Promise<void>
+{
+    const kept = await chrome.storage.local.get('port');
+
+    await learn(Number(kept.port ?? 7373));
+
+    for (const [where, key] of [['port-said', 'port'], ['sites-said', 'sites'],
+                                ['sites-what', 'sites.what'], ['save', 'save']])
+    {
+        const it = document.getElementById(where);
+
+        if (it)
+        {
+            it.textContent = said(key);
+        }
+    }
+
+    await listing();
+}
+
+settingUp();

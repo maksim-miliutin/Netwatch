@@ -970,3 +970,19 @@ func TestSaysGoodbyeInTheSameLanguage(t *testing.T) {
 
 	<-stopped
 }
+
+// The extension asks which language the program settled on, so the two never
+// drift apart.
+func TestTellsTheExtensionWhichLanguage(t *testing.T) {
+	handler := serving(t)
+
+	say.Speak(say.French)
+	defer say.Speak(say.English)
+
+	answer := httptest.NewRecorder()
+	handler.ServeHTTP(answer, httptest.NewRequest("GET", "/api/language", nil))
+
+	if !strings.Contains(answer.Body.String(), `"in":"fr"`) {
+		t.Errorf("said %s", answer.Body)
+	}
+}
