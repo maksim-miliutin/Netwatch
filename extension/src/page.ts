@@ -44,11 +44,37 @@ function send(what: unknown): void
     }
 }
 
-function say(): void
+// Yandex Music keeps no video or audio element on the page at all: the sound
+// comes from somewhere the page cannot be asked about, and mediaSession is the
+// only thing that knows. No element means no position and no length either.
+function sounding(): { paused: boolean; position: number; length: number } | null
 {
     const one = media();
 
-    if (!one)
+    if (one)
+    {
+        return {
+            paused: one.paused,
+            position: one.currentTime,
+            length: Number.isFinite(one.duration) ? one.duration : 0,
+        };
+    }
+
+    const state = navigator.mediaSession.playbackState;
+
+    if (navigator.mediaSession.metadata && state !== 'none')
+    {
+        return { paused: state === 'paused', position: 0, length: 0 };
+    }
+
+    return null;
+}
+
+function say(): void
+{
+    const on = sounding();
+
+    if (!on)
     {
         send({ gone: true });
 
@@ -65,19 +91,7 @@ function say(): void
         return;
     }
 
-    send(
-    {
-        watching:
-        {
-            url: location.href,
-            title,
-            by,
-            paused: one.paused,
-            position: one.currentTime,
-
-            length: Number.isFinite(one.duration) ? one.duration : 0,
-        },
-    });
+    send({ watching: { url: location.href, title, by, ...on } });
 }
 
 // Media events do not travel up the page, so they are caught on the way down.
