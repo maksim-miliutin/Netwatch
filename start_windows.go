@@ -35,6 +35,8 @@ func start(with bool) error {
 		return err
 	}
 
+	// Without a window: a program that starts with the machine should sit in
+	// the tray, not throw a browser up at every login.
 	return quietly("reg", "add", runs, "/v", "netwatch",
-		"/t", "REG_SZ", "/d", where, "/f").Run()
+		"/t", "REG_SZ", "/d", `"`+where+`" -window=false`, "/f").Run()
 }
