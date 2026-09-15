@@ -528,7 +528,7 @@ func Recognise(address, title string, at time.Time) (Play, bool) {
 	return Play{}, false
 }
 
-// A tab is called "Нечто — YouTube", and a browser puts the number of unread
+// A tab is called "Нечто, YouTube", and a browser puts the number of unread
 // notifications in front of that. Neither is the name of anything watched.
 func tidy(title, service string) string {
 	title = strings.TrimSpace(counted.ReplaceAllString(title, ""))

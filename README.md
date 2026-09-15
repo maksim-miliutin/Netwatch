@@ -4,7 +4,7 @@
 
 A list of what was watched and listened to on this machine. YouTube, Twitch,
 Kinopoisk, Okko, Netflix, Prime Video, TikTok, Spotify, Apple Music, Yandex
-Music — thirty-seven services in all, and whatever else you add.
+Music, thirty-seven services in all, and whatever else you add.
 
 Nothing goes anywhere: the program listens on loopback only, and the list sits
 in a file beside it.
@@ -42,10 +42,10 @@ icon, nothing of the browser around it. `-window=false` leaves the browser
 alone.
 
 That is a window rather than an embedded one on purpose. A real one means
-WebView2, which means cgo and the first dependency this has ever had — worth
+WebView2, which means cgo and the first dependency this has ever had, worth
 it only once the borrowed window turns out not to be enough.
 
-Closing that window does not stop anything — the program is not the window,
+Closing that window does not stop anything, the program is not the window,
 and it goes on writing the list and holding up the card. Starting it again is
 what brings the window back: a second start finds the first one already there
 and opens a window rather than complaining about a taken port.
@@ -75,7 +75,7 @@ Chrome → `chrome://extensions` → Developer mode → Load unpacked → the
 Two parts. `worker.ts` reads the address and title of a tab, which is what the
 list is made of. `page.ts` runs on the service's own pages and knows what a tab
 cannot: whether the video is running, how far into it the page has got, and
-what it is really called. "Something — YouTube" is the name of a tab, not the
+what it is really called. "Something, YouTube" is the name of a tab, not the
 name of a video.
 
 Whichever tab started playing first keeps the line at the top of the page. A
@@ -84,19 +84,19 @@ second video opened beside it waits rather than taking over halfway through.
 Everything goes to loopback and nowhere else. The manifest says so, and the
 browser holds it to that.
 
-The popup has a Pause button. Nothing is written down while it is on — not
+The popup has a Pause button. Nothing is written down while it is on, not
 everything watched is something to keep, and the only honest way to leave a
 thing out is not to send it in the first place.
 
 The port is 7373 unless the program was started with `-port`. The extension has
-a settings page for that — right click the icon, Options. Until it knew, a
+a settings page for that, right click the icon, Options. Until it knew, a
 different port meant the extension reported into nothing and had no way to say
 so.
 
 ## Other browsers
 
 Edge, Opera, Brave, Vivaldi and Yandex Browser are Chromium, and take the
-extension as it is — the same folder, the same way.
+extension as it is, the same folder, the same way.
 
 Firefox needs the other manifest: rename `manifest.firefox.json` over
 `manifest.json` and load it through `about:debugging` → This Firefox → Load
@@ -122,7 +122,7 @@ Discord itself has to be the desktop one and open. In its settings, Activity →
 The card carries the name, whose it is, a bar and a button to the address.
 Nothing else is sent: a card has no history, only what is playing this second.
 Music says "listening", everything else says "watching". Discord can be closed,
-opened later, restarted — netwatch connects when one appears, and takes the
+opened later, restarted, netwatch connects when one appears, and takes the
 card down when the tab goes.
 
 A number of your own only changes the name Discord writes above the card and
@@ -132,7 +132,7 @@ puts it back down.
 
 The pictures live in the application rather than in this program: Rich Presence
 shows what was uploaded to it and nothing from elsewhere. Rich Presence → Art
-Assets → upload the tiles from `art/`, each named after its service —
+Assets → upload the tiles from `art/`, each named after its service:
 `youtube`, `spotify`, `kinopoisk`. Discord takes a few minutes to notice new
 ones. Until then the card carries a question mark.
 
@@ -143,7 +143,7 @@ in your application is still somebody else's logo.
 
 The tick boxes at the foot of the page decide which services reach the card,
 sorted into video, streams, films and music. Unticked ones are still written
-down — the list is yours, the card is not.
+down, the list is yours, the card is not.
 
 What is hidden is what is kept, in `.netwatch/quiet`, one name to a line. A
 service added to the program later turns up on the card by itself rather than
@@ -158,7 +158,7 @@ in [PRIVACY.md](PRIVACY.md).
 ## Adding a site of your own
 
 There is a box at the foot of the page for anything with a video or a sound on
-it. netwatch cannot read a strange address, so it asks the page instead — the
+it. netwatch cannot read a strange address, so it asks the page instead, the
 same way it knows what Yandex Music is playing, since that one keeps the track
 out of the address as well.
 
@@ -205,7 +205,7 @@ What is playing sits at the top with a bar that moves on its own. Under it the
 week, and a link to the month or to the lot: a week does not answer where a
 year went.
 
-The list is broken up by day, newest first, two hundred rows of it — the rest
+The list is broken up by day, newest first, two hundred rows of it, the rest
 stays in the file rather than in a page nobody scrolls. There is a search, and
 a cross at the end of every row: a list somebody cannot cross a line out of is
 a list they stop keeping.
@@ -215,17 +215,17 @@ line of JSON per play, which is honest and unreadable by anything already on
 the machine.
 
 The page follows the dark setting of the system, and refreshes itself every ten
-seconds — until anything on it is touched. A page that reloads while somebody
+seconds, until anything on it is touched. A page that reloads while somebody
 is ticking boxes has thrown their work away.
 
 ## How long
 
 A play is closed when the page says it ended: the tab was closed, or somebody
-left it. That is the only honest end — everything else is a guess made after
+left it. That is the only honest end, everything else is a guess made after
 the fact.
 
-When there was nobody left to say it — the browser was killed, the machine went
-to sleep — the next play closes the one before it. And if more than three hours
+When there was nobody left to say it, the browser was killed, the machine went
+to sleep, the next play closes the one before it. And if more than three hours
 passed between them, nothing is counted at all: a tab left open overnight was
 not nine hours of YouTube, and a list that says so is worse than one that says
 nothing.
@@ -247,7 +247,7 @@ Google: `takeout.google.com` → YouTube only → history → JSON. The archive 
 Running it twice costs nothing: the same thing is not written again. Whoever is
 unsure whether it worked will run it again, and that is right.
 
-Rows without an address are skipped — a video taken down has nothing to point
+Rows without an address are skipped, a video taken down has nothing to point
 at. So are searches: a page of the service, not a watch.
 
 ## Next

@@ -248,7 +248,7 @@
     <div class="spread wide">
         {{range $.Spread}}
         <i style="width: {{printf "%.2f" .Part}}%"
-           title="{{.Shown}} — {{hours .Seconds}}"></i>
+           title="{{.Shown}}, {{hours .Seconds}}"></i>
         {{end}}
     </div>
 
@@ -291,7 +291,7 @@
     <div class="spread">
         {{range .Spread}}
         <i style="width: {{printf "%.2f" .Part}}%"
-           title="{{.Shown}} — {{hours .Seconds}}"></i>
+           title="{{.Shown}}, {{hours .Seconds}}"></i>
         {{end}}
     </div>
 

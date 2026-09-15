@@ -62,7 +62,7 @@ func whose(live now.Live) string {
 	return shown
 }
 
-// With an end Discord counts down, without one it counts up — as a stream should.
+// With an end Discord counts down, without one it counts up, as a stream should.
 func when(live now.Live) *Timestamps {
 	if live.Started.IsZero() {
 		return nil
