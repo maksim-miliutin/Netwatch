@@ -1,7 +1,7 @@
 ![](art/smile.png)
 
 # netwatch
-
+[Download the latest release](https://github.com/maksim-miliutin/Netwatch/releases/latest)
 A list of what was watched and listened to on this machine. YouTube, Twitch,
 Kinopoisk, Okko, Netflix, Prime Video, TikTok, Spotify, Apple Music, Yandex
 Music, thirty-seven services in all, and whatever else you add.
