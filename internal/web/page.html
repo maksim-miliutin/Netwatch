@@ -116,15 +116,17 @@
 
     .day span:first-child::before, .part summary::before,
     .below > summary::before, .rest summary::before {
-        content: "›";
+        content: "\25B8";
         display: inline-block;
-        width: 0.9em;
-        color: var(--faint);
-        transition: transform 0.12s;
+        width: 1em;
+        color: var(--rule);
+        font-size: 0.8em;
     }
 
+    /* Two marks rather than one turned on its side: a turned angle reads as a
+       diacritic at this size. */
     details[open] > .day span:first-child::before,
-    details[open] > summary::before { transform: rotate(90deg); }
+    details[open] > summary::before { content: "\25BE"; }
 
     /* Where a day went, in one line. One accent and grey rather than a colour
        for every service: nine colours in a row is a chart nobody reads. */
